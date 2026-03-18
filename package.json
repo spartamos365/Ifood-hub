@@ -24,3 +24,7 @@
     "uuid": "^9.0.0"
   }
 }
+"scripts": {
+  "start": "node backend.js",
+  "build": "npm install"
+}
