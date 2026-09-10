@@ -15,6 +15,7 @@ const els = {
   tabChat: document.getElementById('tab-chat'),
   tabRoutine: document.getElementById('tab-routine'),
   tabFinance: document.getElementById('tab-finance'),
+  tabCompany: document.getElementById('tab-company'),
   tabPatrimonio: document.getElementById('tab-patrimonio'),
   messages: document.getElementById('messages'),
   chatForm: document.getElementById('chat-form'),
@@ -40,6 +41,21 @@ const els = {
   txAmount: document.getElementById('tx-amount'),
   txType: document.getElementById('tx-type'),
   txCategory: document.getElementById('tx-category'),
+  bizStatBalance: document.getElementById('biz-stat-balance'),
+  bizStatIncome: document.getElementById('biz-stat-income'),
+  bizStatExpense: document.getElementById('biz-stat-expense'),
+  bizAccountList: document.getElementById('biz-account-list'),
+  bizAccountForm: document.getElementById('biz-account-form'),
+  bizAccountName: document.getElementById('biz-account-name'),
+  bizAccountBalance: document.getElementById('biz-account-balance'),
+  bizCategoryList: document.getElementById('biz-category-list'),
+  bizTransactionList: document.getElementById('biz-transaction-list'),
+  bizTransactionForm: document.getElementById('biz-transaction-form'),
+  bizTxAccount: document.getElementById('biz-tx-account'),
+  bizTxDescription: document.getElementById('biz-tx-description'),
+  bizTxAmount: document.getElementById('biz-tx-amount'),
+  bizTxType: document.getElementById('biz-tx-type'),
+  bizTxCategory: document.getElementById('biz-tx-category'),
   statNetworth: document.getElementById('stat-networth'),
   statAssets: document.getElementById('stat-assets'),
   statLiabilities: document.getElementById('stat-liabilities'),
@@ -112,9 +128,11 @@ els.tabBtns.forEach((btn) => {
     els.tabChat.classList.toggle('hidden', tab !== 'chat');
     els.tabRoutine.classList.toggle('hidden', tab !== 'routine');
     els.tabFinance.classList.toggle('hidden', tab !== 'finance');
+    els.tabCompany.classList.toggle('hidden', tab !== 'company');
     els.tabPatrimonio.classList.toggle('hidden', tab !== 'patrimonio');
     if (tab === 'routine') loadRoutine();
-    if (tab === 'finance') loadFinance();
+    if (tab === 'finance') personalFinancePanel.load();
+    if (tab === 'company') companyFinancePanel.load();
     if (tab === 'patrimonio') loadPatrimonio();
   });
 });
@@ -242,36 +260,17 @@ els.genBriefingBtn.addEventListener('click', async () => {
   }
 });
 
-// ─── Finanças ──────────────────────────────────────────────────────
+// ─── Finanças (pessoal + empresa, mesmo painel reaproveitado) ───────
 function formatCurrency(value) {
   return (value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-async function loadFinance() {
-  try {
-    const [summary, accounts, transactions] = await Promise.all([
-      api('/api/finance/summary?period=month'),
-      api('/api/finance/accounts'),
-      api('/api/finance/transactions?limit=20'),
-    ]);
-    els.statBalance.textContent = formatCurrency(summary.totalBalance);
-    els.statIncome.textContent = formatCurrency(summary.income);
-    els.statExpense.textContent = formatCurrency(summary.expense);
-
-    renderAccounts(accounts.accounts);
-    renderCategories(summary.byCategory);
-    renderTransactions(transactions.transactions);
-  } catch (err) {
-    els.statBalance.textContent = `Erro: ${err.message}`;
-  }
-}
-
-function renderAccounts(accounts) {
-  els.accountList.innerHTML = '';
-  els.txAccount.innerHTML = '';
+function renderAccountsInto(e, accounts) {
+  e.accountList.innerHTML = '';
+  e.txAccount.innerHTML = '';
 
   if (!accounts.length) {
-    els.accountList.innerHTML = '<li class="task-empty">Nenhuma conta cadastrada ainda.</li>';
+    e.accountList.innerHTML = '<li class="task-empty">Nenhuma conta cadastrada ainda.</li>';
   }
 
   accounts.forEach((acc) => {
@@ -282,19 +281,19 @@ function renderAccounts(accounts) {
     balance.className = acc.balance >= 0 ? 'amount-positive' : 'amount-negative';
     balance.textContent = formatCurrency(acc.balance);
     li.appendChild(balance);
-    els.accountList.appendChild(li);
+    e.accountList.appendChild(li);
 
     const option = document.createElement('option');
     option.value = acc.name;
     option.textContent = acc.name;
-    els.txAccount.appendChild(option);
+    e.txAccount.appendChild(option);
   });
 }
 
-function renderCategories(categories) {
-  els.categoryList.innerHTML = '';
+function renderCategoriesInto(e, categories) {
+  e.categoryList.innerHTML = '';
   if (!categories.length) {
-    els.categoryList.innerHTML = '<li class="task-empty">Nenhum gasto registrado este mês.</li>';
+    e.categoryList.innerHTML = '<li class="task-empty">Nenhum gasto registrado este mês.</li>';
     return;
   }
   categories.forEach((c) => {
@@ -305,14 +304,14 @@ function renderCategories(categories) {
     total.className = 'amount-negative';
     total.textContent = formatCurrency(c.total);
     li.appendChild(total);
-    els.categoryList.appendChild(li);
+    e.categoryList.appendChild(li);
   });
 }
 
-function renderTransactions(transactions) {
-  els.transactionList.innerHTML = '';
+function renderTransactionsInto(e, transactions) {
+  e.transactionList.innerHTML = '';
   if (!transactions.length) {
-    els.transactionList.innerHTML = '<li class="task-empty">Nenhuma transação ainda.</li>';
+    e.transactionList.innerHTML = '<li class="task-empty">Nenhuma transação ainda.</li>';
     return;
   }
   transactions.forEach((tx) => {
@@ -335,49 +334,95 @@ function renderTransactions(transactions) {
 
     li.appendChild(info);
     li.appendChild(amount);
-    els.transactionList.appendChild(li);
+    e.transactionList.appendChild(li);
   });
 }
 
-els.accountForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const name = els.accountName.value.trim();
-  if (!name) return;
-  await api('/api/finance/accounts', {
-    method: 'POST',
-    body: JSON.stringify({ name, initial_balance: Number(els.accountBalance.value) || 0 }),
+// Cria um painel de finanças completo (carregamento + formulários) ligado
+// a um prefixo de API ('/api/finance' ou '/api/company/finance') e a um
+// conjunto de elementos DOM. Usado para as abas "Finanças" e "Empresa".
+function createFinancePanel(apiPrefix, e) {
+  async function load() {
+    try {
+      const [summary, accounts, transactions] = await Promise.all([
+        api(`${apiPrefix}/summary?period=month`),
+        api(`${apiPrefix}/accounts`),
+        api(`${apiPrefix}/transactions?limit=20`),
+      ]);
+      e.statBalance.textContent = formatCurrency(summary.totalBalance);
+      e.statIncome.textContent = formatCurrency(summary.income);
+      e.statExpense.textContent = formatCurrency(summary.expense);
+
+      renderAccountsInto(e, accounts.accounts);
+      renderCategoriesInto(e, summary.byCategory);
+      renderTransactionsInto(e, transactions.transactions);
+    } catch (err) {
+      e.statBalance.textContent = `Erro: ${err.message}`;
+    }
+  }
+
+  e.accountForm.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const name = e.accountName.value.trim();
+    if (!name) return;
+    await api(`${apiPrefix}/accounts`, {
+      method: 'POST',
+      body: JSON.stringify({ name, initial_balance: Number(e.accountBalance.value) || 0 }),
+    });
+    e.accountName.value = '';
+    e.accountBalance.value = '';
+    load();
   });
-  els.accountName.value = '';
-  els.accountBalance.value = '';
-  loadFinance();
+
+  e.transactionForm.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const accountName = e.txAccount.value;
+    if (!accountName) {
+      alert('Cadastre uma conta primeiro.');
+      return;
+    }
+    const accounts = await api(`${apiPrefix}/accounts`);
+    const account = accounts.accounts.find((a) => a.name === accountName);
+    const rawAmount = Math.abs(Number(e.txAmount.value));
+    const amount = e.txType.value === 'despesa' ? -rawAmount : rawAmount;
+
+    await api(`${apiPrefix}/transactions`, {
+      method: 'POST',
+      body: JSON.stringify({
+        account_id: account.id,
+        description: e.txDescription.value.trim(),
+        amount,
+        category: e.txCategory.value.trim() || 'outros',
+      }),
+    });
+
+    e.txDescription.value = '';
+    e.txAmount.value = '';
+    e.txCategory.value = '';
+    load();
+  });
+
+  return { load };
+}
+
+const personalFinancePanel = createFinancePanel('/api/finance', {
+  statBalance: els.statBalance, statIncome: els.statIncome, statExpense: els.statExpense,
+  accountList: els.accountList, accountForm: els.accountForm,
+  accountName: els.accountName, accountBalance: els.accountBalance,
+  categoryList: els.categoryList, transactionList: els.transactionList,
+  transactionForm: els.transactionForm, txAccount: els.txAccount,
+  txDescription: els.txDescription, txAmount: els.txAmount,
+  txType: els.txType, txCategory: els.txCategory,
 });
 
-els.transactionForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const accountName = els.txAccount.value;
-  if (!accountName) {
-    alert('Cadastre uma conta primeiro.');
-    return;
-  }
-  const accounts = await api('/api/finance/accounts');
-  const account = accounts.accounts.find((a) => a.name === accountName);
-  const rawAmount = Math.abs(Number(els.txAmount.value));
-  const amount = els.txType.value === 'despesa' ? -rawAmount : rawAmount;
-
-  await api('/api/finance/transactions', {
-    method: 'POST',
-    body: JSON.stringify({
-      account_id: account.id,
-      description: els.txDescription.value.trim(),
-      amount,
-      category: els.txCategory.value.trim() || 'outros',
-    }),
-  });
-
-  els.txDescription.value = '';
-  els.txAmount.value = '';
-  els.txCategory.value = '';
-  loadFinance();
+const companyFinancePanel = createFinancePanel('/api/company/finance', {
+  statBalance: els.bizStatBalance, statIncome: els.bizStatIncome, statExpense: els.bizStatExpense,
+  accountList: els.bizAccountList, accountForm: els.bizAccountForm,
+  accountName: els.bizAccountName, accountBalance: els.bizAccountBalance,
+  categoryList: els.bizCategoryList, transactionList: els.bizTransactionList,
+  transactionForm: els.bizTransactionForm, txAccount: els.bizTxAccount,
+  txDescription: els.bizTxDescription, txAmount: els.bizTxAmount,
+  txType: els.bizTxType, txCategory: els.bizTxCategory,
 });
 
 // ─── Patrimônio ────────────────────────────────────────────────────

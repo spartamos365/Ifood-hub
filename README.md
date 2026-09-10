@@ -85,6 +85,16 @@ O celular precisa estar na **mesma rede Wi-Fi** que o PC (ou usar uma VPN tipo
 - Histórico de evolução do patrimônio líquido, com um snapshot salvo por dia
   e gráfico simples no painel de Patrimônio.
 
+## O que já funciona (Fase 2c — financeiro da empresa)
+
+- Mesmo modelo de contas/transações/resumo das finanças pessoais, mas
+  completamente isolado (`scope: "empresa"`) — nada se mistura com suas
+  finanças pessoais.
+- Aba "Empresa" separada no painel, com suas próprias contas, transações e
+  resumo mensal por categoria.
+- O agente também opera nos dois escopos pelo chat, e pergunta antes de
+  registrar algo se não estiver claro se é pessoal ou da empresa.
+
 ## Roadmap
 
 A plataforma foi desenhada para crescer em módulos, todos plugados no mesmo
@@ -95,7 +105,7 @@ ferramentas do agente:
 
 - [x] **Finanças pessoais**: contas, gastos, receitas, resumo por categoria.
 - [x] **Patrimônio**: ativos, passivos, patrimônio líquido e evolução no tempo.
-- [ ] **Financeiro da empresa**: fluxo de caixa, contas a pagar/receber, DRE simples.
+- [x] **Financeiro da empresa**: contas, receitas/despesas e resumo, isolado do pessoal.
 - [ ] **Saúde pessoal**: hábitos, exames, métricas (sono, peso, treino), lembretes.
 - [ ] **Busca de negócios/investimentos**: pesquisa e triagem de oportunidades,
       com o agente trazendo análises e recomendações.
@@ -118,8 +128,10 @@ server/
   routes/
     chat.js                    # POST /api/chat
     routine.js                   # tarefas, agenda de hoje, memória
-    finance.js                     # contas, transações, resumo financeiro
+    finance.js                     # factory de rotas de contas/transações/resumo,
+                                    # montada duas vezes: /api/finance (pessoal) e
+                                    # /api/company/finance (empresa)
     patrimonio.js                    # ativos, passivos, patrimônio líquido, histórico
 public/
-  index.html, app.js, styles.css   # frontend (chat + rotina + finanças + patrimônio)
+  index.html, app.js, styles.css   # frontend (chat + rotina + finanças + empresa + patrimônio)
 ```

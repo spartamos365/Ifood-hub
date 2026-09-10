@@ -25,6 +25,7 @@
         <button class="tab-btn active" data-tab="chat">Chat</button>
         <button class="tab-btn" data-tab="routine">Rotina</button>
         <button class="tab-btn" data-tab="finance">Finanças</button>
+        <button class="tab-btn" data-tab="company">Empresa</button>
         <button class="tab-btn" data-tab="patrimonio">Patrimônio</button>
       </nav>
       <button id="logout-btn" class="ghost-btn">Sair</button>
@@ -112,6 +113,61 @@
           <option value="receita">Receita</option>
         </select>
         <input id="tx-category" type="text" placeholder="Categoria" />
+        <button type="submit">Registrar</button>
+      </form>
+    </main>
+
+    <main id="tab-company" class="tab-panel hidden">
+      <section class="finance-summary">
+        <div class="stat-card">
+          <span class="stat-label">Saldo total (empresa)</span>
+          <span id="biz-stat-balance" class="stat-value">R$ 0,00</span>
+        </div>
+        <div class="stat-card income">
+          <span class="stat-label">Receitas (mês)</span>
+          <span id="biz-stat-income" class="stat-value">R$ 0,00</span>
+        </div>
+        <div class="stat-card expense">
+          <span class="stat-label">Despesas (mês)</span>
+          <span id="biz-stat-expense" class="stat-value">R$ 0,00</span>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-header">
+          <h2>Contas da empresa</h2>
+        </div>
+        <ul id="biz-account-list" class="account-list"></ul>
+        <form id="biz-account-form" class="inline-form">
+          <input id="biz-account-name" type="text" placeholder="Nome da conta (ex: Conta PJ)" required />
+          <input id="biz-account-balance" type="number" step="0.01" placeholder="Saldo inicial" />
+          <button type="submit">Adicionar conta</button>
+        </form>
+      </section>
+
+      <section>
+        <div class="section-header">
+          <h2>Gastos por categoria (mês)</h2>
+        </div>
+        <ul id="biz-category-list" class="category-list"></ul>
+      </section>
+
+      <section>
+        <div class="section-header">
+          <h2>Transações recentes</h2>
+        </div>
+        <ul id="biz-transaction-list" class="transaction-list"></ul>
+      </section>
+
+      <form id="biz-transaction-form" class="task-form">
+        <select id="biz-tx-account"></select>
+        <input id="biz-tx-description" type="text" placeholder="Descrição" required />
+        <input id="biz-tx-amount" type="number" step="0.01" placeholder="Valor" required />
+        <select id="biz-tx-type">
+          <option value="despesa">Despesa</option>
+          <option value="receita">Receita</option>
+        </select>
+        <input id="biz-tx-category" type="text" placeholder="Categoria" />
         <button type="submit">Registrar</button>
       </form>
     </main>

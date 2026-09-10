@@ -73,56 +73,65 @@ const definitions = [
   // ─── Finanças pessoais (Fase 2a) ─────────────────────────────────────
   {
     name: 'create_finance_account',
-    description: 'Cria uma conta financeira pessoal (conta corrente, poupança, carteira, cartão etc).',
+    description: 'Cria uma conta financeira (conta corrente, poupança, carteira, cartão etc), pessoal ou da empresa.',
     input_schema: {
       type: 'object',
       properties: {
-        name: { type: 'string', description: 'Nome da conta, ex: "Nubank", "Carteira"' },
+        name: { type: 'string', description: 'Nome da conta, ex: "Nubank", "Carteira", "Conta PJ"' },
         type: { type: 'string', description: 'Tipo livre, ex: corrente, poupança, carteira, cartão de crédito, investimento' },
         initial_balance: { type: 'number', description: 'Saldo inicial da conta' },
+        scope: { type: 'string', enum: ['pessoal', 'empresa'], description: 'Se é uma conta pessoal ou da empresa. Padrão: pessoal.' },
       },
       required: ['name'],
     },
   },
   {
     name: 'list_finance_accounts',
-    description: 'Lista as contas financeiras pessoais do usuário com seus saldos atuais.',
-    input_schema: { type: 'object', properties: {} },
-  },
-  {
-    name: 'log_transaction',
-    description: 'Registra uma entrada (receita) ou saída (despesa) financeira. Use amount positivo para receita e negativo para despesa.',
+    description: 'Lista as contas financeiras do usuário com seus saldos atuais.',
     input_schema: {
       type: 'object',
       properties: {
-        description: { type: 'string', description: 'Descrição da transação, ex: "Supermercado", "Salário"' },
+        scope: { type: 'string', enum: ['pessoal', 'empresa'], description: 'Padrão: pessoal.' },
+      },
+    },
+  },
+  {
+    name: 'log_transaction',
+    description: 'Registra uma entrada (receita) ou saída (despesa) financeira, pessoal ou da empresa. Use amount positivo para receita e negativo para despesa.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        description: { type: 'string', description: 'Descrição da transação, ex: "Supermercado", "Salário", "Pagamento de fornecedor"' },
         amount: { type: 'number', description: 'Valor: positivo = entrada/receita, negativo = saída/despesa' },
-        category: { type: 'string', description: 'Categoria livre, ex: mercado, transporte, moradia, lazer, saúde, salário' },
-        account_name: { type: 'string', description: 'Nome da conta a debitar/creditar. Se omitido e houver só uma conta, usa ela.' },
+        category: { type: 'string', description: 'Categoria livre, ex: mercado, transporte, moradia, lazer, saúde, salário, fornecedor, folha' },
+        account_name: { type: 'string', description: 'Nome da conta a debitar/creditar. Se omitido e houver só uma conta no escopo, usa ela.' },
         occurred_at: { type: 'string', description: 'Data/hora em ISO 8601, se não for agora' },
+        scope: { type: 'string', enum: ['pessoal', 'empresa'], description: 'Se a transação é pessoal ou da empresa. Padrão: pessoal.' },
       },
       required: ['description', 'amount'],
     },
   },
   {
     name: 'list_transactions',
-    description: 'Lista as transações financeiras recentes, com filtro opcional por conta e categoria.',
+    description: 'Lista as transações financeiras recentes, pessoais ou da empresa, com filtro opcional por conta e categoria.',
     input_schema: {
       type: 'object',
       properties: {
         account_name: { type: 'string' },
         category: { type: 'string' },
         limit: { type: 'number' },
+        scope: { type: 'string', enum: ['pessoal', 'empresa'], description: 'Padrão: pessoal.' },
       },
     },
   },
   {
     name: 'get_finance_summary',
-    description: 'Retorna o resumo financeiro pessoal: saldo total, receitas, despesas e gastos por categoria no período.',
+    description: 'Retorna o resumo financeiro (pessoal ou da empresa): saldo total, receitas, despesas e gastos por categoria no período.',
     input_schema: {
       type: 'object',
       properties: {
         period: { type: 'string', enum: ['today', 'week', 'month', 'all'], description: 'Período do resumo, padrão "month"' },
+        scope: { type: 'string', enum: ['pessoal', 'empresa'], description: 'Padrão: pessoal.' },
       },
     },
   },
@@ -207,6 +216,7 @@ function execute(userId, name, input) {
       try {
         return finance.createAccount(userId, {
           name: input.name, type: input.type, initial_balance: input.initial_balance,
+          scope: input.scope || 'pessoal',
         });
       } catch (err) {
         return { error: err.message };
@@ -214,21 +224,22 @@ function execute(userId, name, input) {
     }
 
     case 'list_finance_accounts': {
-      return finance.listAccounts(userId);
+      return finance.listAccounts(userId, input.scope || 'pessoal');
     }
 
     case 'log_transaction': {
-      const accounts = finance.listAccounts(userId);
+      const scope = input.scope || 'pessoal';
+      const accounts = finance.listAccounts(userId, scope);
       let accountId = null;
 
       if (input.account_name) {
         const match = accounts.find(a => a.name.toLowerCase() === input.account_name.toLowerCase());
-        if (!match) return { error: `Conta "${input.account_name}" não encontrada`, accounts: accounts.map(a => a.name) };
+        if (!match) return { error: `Conta "${input.account_name}" não encontrada no escopo ${scope}`, accounts: accounts.map(a => a.name) };
         accountId = match.id;
       } else if (accounts.length === 1) {
         accountId = accounts[0].id;
       } else if (accounts.length === 0) {
-        return { error: 'Nenhuma conta cadastrada ainda. Crie uma com create_finance_account antes de registrar transações.' };
+        return { error: `Nenhuma conta ${scope} cadastrada ainda. Crie uma com create_finance_account antes de registrar transações.` };
       } else {
         return { error: 'Mais de uma conta encontrada, especifique account_name.', accounts: accounts.map(a => a.name) };
       }
@@ -244,18 +255,19 @@ function execute(userId, name, input) {
     }
 
     case 'list_transactions': {
-      const accounts = finance.listAccounts(userId);
+      const scope = input.scope || 'pessoal';
+      const accounts = finance.listAccounts(userId, scope);
       let accountId;
       if (input.account_name) {
         const match = accounts.find(a => a.name.toLowerCase() === input.account_name.toLowerCase());
-        if (!match) return { error: `Conta "${input.account_name}" não encontrada` };
+        if (!match) return { error: `Conta "${input.account_name}" não encontrada no escopo ${scope}` };
         accountId = match.id;
       }
-      return finance.listTransactions(userId, { accountId, category: input.category, limit: input.limit });
+      return finance.listTransactions(userId, { accountId, category: input.category, limit: input.limit, scope });
     }
 
     case 'get_finance_summary': {
-      return finance.summary(userId, { period: input.period || 'month' });
+      return finance.summary(userId, { period: input.period || 'month', scope: input.scope || 'pessoal' });
     }
 
     case 'create_asset': {

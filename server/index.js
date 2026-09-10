@@ -9,7 +9,7 @@ const { ensureOwnerUser, login, requireAuth } = require('./auth');
 const db = require('./db');
 const chatRoutes = require('./routes/chat');
 const routineRoutes = require('./routes/routine');
-const financeRoutes = require('./routes/finance');
+const createFinanceRouter = require('./routes/finance');
 const patrimonioRoutes = require('./routes/patrimonio');
 const { startScheduler, generateBriefing } = require('./scheduler');
 
@@ -47,7 +47,8 @@ app.post('/api/auth/login', (req, res) => {
 
 app.use('/api/chat', requireAuth, chatRoutes);
 app.use('/api/routine', requireAuth, routineRoutes);
-app.use('/api/finance', requireAuth, financeRoutes);
+app.use('/api/finance', requireAuth, createFinanceRouter('pessoal'));
+app.use('/api/company/finance', requireAuth, createFinanceRouter('empresa'));
 app.use('/api/patrimonio', requireAuth, patrimonioRoutes);
 
 app.post('/api/routine/briefing/generate', requireAuth, async (req, res) => {
