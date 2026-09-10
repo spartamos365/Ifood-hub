@@ -28,6 +28,7 @@
         <button class="tab-btn" data-tab="company">Empresa</button>
         <button class="tab-btn" data-tab="patrimonio">Patrimônio</button>
         <button class="tab-btn" data-tab="health">Saúde</button>
+        <button class="tab-btn" data-tab="opportunities">Oportunidades</button>
       </nav>
       <button id="logout-btn" class="ghost-btn">Sair</button>
     </header>
@@ -243,6 +244,27 @@
         <input id="metric-value" type="number" step="0.01" placeholder="Valor" required />
         <input id="metric-note" type="text" placeholder="Observação (opcional)" />
         <button type="submit">Registrar</button>
+      </form>
+    </main>
+
+    <main id="tab-opportunities" class="tab-panel hidden">
+      <p class="hint-text">
+        Este painel ajuda a organizar e triar ideias. A análise vem do raciocínio
+        do agente na conversa — ele ainda não pesquisa preços ou notícias ao vivo.
+      </p>
+
+      <section>
+        <div class="section-header">
+          <h2>Oportunidades</h2>
+        </div>
+        <ul id="opportunity-list" class="opportunity-list"></ul>
+      </section>
+
+      <form id="opportunity-form" class="inline-form">
+        <input id="opp-title" type="text" placeholder="Título" required />
+        <input id="opp-category" type="text" placeholder="Categoria (ex: negocio)" />
+        <input id="opp-value" type="number" step="0.01" placeholder="Valor estimado" />
+        <button type="submit">Adicionar</button>
       </form>
     </main>
   </div>

@@ -2,11 +2,12 @@
 
 Um assistente de IA pessoal (estilo Jarvis) que roda no seu PC e pode ser acessado
 pelo celular. O agente conversa com você, gerencia sua rotina (tarefas, compromissos,
-lembretes) e mantém memória de longo prazo sobre suas preferências e contexto.
+lembretes) e mantém memória de longo prazo sobre suas preferências e contexto — e
+cobre as áreas que você pediu: finanças pessoais, financeiro da empresa, saúde
+pessoal, patrimônio e triagem de oportunidades de negócio/investimento.
 
-Este é o **núcleo** da plataforma — a base sobre a qual os módulos de finanças,
-saúde, patrimônio e busca de negócios serão construídos nas próximas fases (veja
-[Roadmap](#roadmap)).
+Todos os módulos abaixo estão implementados e funcionando. Veja [Roadmap](#roadmap)
+para o que pode evoluir a partir daqui.
 
 ## Como funciona
 
@@ -102,23 +103,43 @@ O celular precisa estar na **mesma rede Wi-Fi** que o PC (ou usar uma VPN tipo
 - Painel com a última leitura de cada métrica e um gráfico de tendência
   para a métrica selecionada.
 
+## O que já funciona (Fase 2e — oportunidades de negócio/investimento)
+
+- Board de oportunidades: título, categoria, valor estimado, status
+  (analisando/em andamento/aprovada/descartada) e próximo passo.
+- O agente registra e ajuda a triar oportunidades pelo chat, dando sua
+  análise (prós, contras, riscos) com base no raciocínio dele e no que você
+  contar na conversa.
+- **Limitação importante e intencional**: o agente **não tem busca na web
+  nem dados de mercado em tempo real** nesta fase — ele não pesquisa preços,
+  cotações ou notícias atuais. Ele deixa isso claro nas respostas. Ver
+  [Roadmap](#roadmap) para como evoluir isso.
+
 ## Roadmap
 
-A plataforma foi desenhada para crescer em módulos, todos plugados no mesmo
-núcleo (agente + memória + rotina). O modelo de dados dessas próximas fases já
-está no `server/db.js` (tabelas `finance_accounts`, `finance_transactions`,
-`health_logs`, `assets`, `opportunities`), prontas para receber as rotas e
-ferramentas do agente:
+Todos os módulos pedidos inicialmente (finanças pessoais, financeiro da
+empresa, saúde, patrimônio, oportunidades de negócio/investimento) estão
+implementados, plugados no mesmo núcleo (agente + memória + rotina):
 
 - [x] **Finanças pessoais**: contas, gastos, receitas, resumo por categoria.
 - [x] **Patrimônio**: ativos, passivos, patrimônio líquido e evolução no tempo.
 - [x] **Financeiro da empresa**: contas, receitas/despesas e resumo, isolado do pessoal.
 - [x] **Saúde pessoal**: métricas livres (peso, sono, treino, pressão...) e tendência.
-- [ ] **Busca de negócios/investimentos**: pesquisa e triagem de oportunidades,
-      com o agente trazendo análises e recomendações.
+- [x] **Oportunidades de negócio/investimento**: registro, triagem e análise por
+      raciocínio do agente (sem busca real na web ainda).
 
-Cada módulo será construído como: tabelas no banco (já reservadas) → rotas de API
-→ novas ferramentas (`tools.js`) que o agente pode chamar → interface no frontend.
+Próximas evoluções sugeridas (nenhuma delas obrigatória, mas onde investir se
+quiser ir além):
+
+- **Busca real na web para oportunidades**: plugar uma API de busca (ex: Brave
+  Search, SerpAPI) como nova ferramenta do agente, para pesquisar preços,
+  concorrência e notícias de verdade antes de opinar.
+- **Import automático de extrato bancário** (Open Finance/Pluggy, ou upload de
+  CSV) em vez de lançar transações manualmente.
+- **Notificações push** no celular para lembretes e o resumo matinal, em vez
+  de só aparecer quando você abre o app.
+- **Multiplos usuários/perfis**, caso um dia queira dar acesso a outra pessoa
+  (hoje é single-user por design, de propósito, para manter simples).
 
 ## Estrutura do projeto
 
@@ -140,6 +161,8 @@ server/
                                     # /api/company/finance (empresa)
     patrimonio.js                    # ativos, passivos, patrimônio líquido, histórico
     health.js                          # métricas de saúde, últimas leituras, tendência
+    opportunities.js                     # board de oportunidades de negócio/investimento
 public/
-  index.html, app.js, styles.css   # frontend (chat + rotina + finanças + empresa + patrimônio + saúde)
+  index.html, app.js, styles.css   # frontend (chat + rotina + finanças + empresa +
+                                    # patrimônio + saúde + oportunidades)
 ```

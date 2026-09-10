@@ -3,11 +3,12 @@ const db = require('./db');
 const finance = require('./finance');
 const patrimonio = require('./patrimonio');
 const health = require('./health');
+const opportunities = require('./opportunities');
 
 // Ferramentas que o agente pode chamar para agir de verdade (nao so conversar).
 // Fase 1: rotina/tarefas + memoria de longo prazo. Fase 2a: financas pessoais
-// e da empresa. Fase 2b: patrimonio. Fase 2c: saude. Busca de negocios entra
-// em fase seguinte, plugando novas ferramentas aqui.
+// e da empresa. Fase 2b: patrimonio. Fase 2c: saude. Fase 2d: oportunidades
+// de negocio/investimento (triagem + analise por raciocinio, sem busca web).
 
 const definitions = [
   {
@@ -195,6 +196,47 @@ const definitions = [
       required: ['metric'],
     },
   },
+
+  // ─── Oportunidades de negócio/investimento (Fase 2e) ──────────────────
+  {
+    name: 'create_opportunity',
+    description: 'Registra uma oportunidade de negócio ou investimento para acompanhar e analisar.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'Nome curto da oportunidade' },
+        description: { type: 'string', description: 'Descrição, contexto, prós e contras' },
+        category: { type: 'string', description: 'Categoria livre, ex: negocio, investimento, imovel, acoes, renda_fixa, cripto' },
+        estimated_value: { type: 'number', description: 'Valor estimado envolvido (investimento necessário ou retorno esperado), se souber' },
+        next_step: { type: 'string', description: 'Próximo passo a dar nessa oportunidade' },
+      },
+      required: ['title'],
+    },
+  },
+  {
+    name: 'list_opportunities',
+    description: 'Lista as oportunidades de negócio/investimento do usuário, com filtro opcional por status.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        status: { type: 'string', enum: ['analisando', 'em_andamento', 'aprovada', 'descartada'] },
+      },
+    },
+  },
+  {
+    name: 'update_opportunity',
+    description: 'Atualiza o status, próximo passo ou descrição de uma oportunidade existente.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        status: { type: 'string', enum: ['analisando', 'em_andamento', 'aprovada', 'descartada'] },
+        next_step: { type: 'string' },
+        description: { type: 'string' },
+      },
+      required: ['id'],
+    },
+  },
 ];
 
 function execute(userId, name, input) {
@@ -336,6 +378,29 @@ function execute(userId, name, input) {
 
     case 'get_health_history': {
       return health.history(userId, input.metric, { days: input.days || 90 });
+    }
+
+    case 'create_opportunity': {
+      try {
+        return opportunities.create(userId, {
+          title: input.title, description: input.description, category: input.category,
+          estimated_value: input.estimated_value, next_step: input.next_step,
+        });
+      } catch (err) {
+        return { error: err.message };
+      }
+    }
+
+    case 'list_opportunities': {
+      return opportunities.list(userId, { status: input.status });
+    }
+
+    case 'update_opportunity': {
+      const result = opportunities.update(userId, input.id, {
+        status: input.status, next_step: input.next_step, description: input.description,
+      });
+      if (!result) return { error: 'Oportunidade não encontrada' };
+      return result;
     }
 
     default:

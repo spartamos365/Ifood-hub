@@ -18,6 +18,7 @@ const els = {
   tabCompany: document.getElementById('tab-company'),
   tabPatrimonio: document.getElementById('tab-patrimonio'),
   tabHealth: document.getElementById('tab-health'),
+  tabOpportunities: document.getElementById('tab-opportunities'),
   messages: document.getElementById('messages'),
   chatForm: document.getElementById('chat-form'),
   chatText: document.getElementById('chat-text'),
@@ -74,6 +75,11 @@ const els = {
   metricName: document.getElementById('metric-name'),
   metricValue: document.getElementById('metric-value'),
   metricNote: document.getElementById('metric-note'),
+  opportunityList: document.getElementById('opportunity-list'),
+  opportunityForm: document.getElementById('opportunity-form'),
+  oppTitle: document.getElementById('opp-title'),
+  oppCategory: document.getElementById('opp-category'),
+  oppValue: document.getElementById('opp-value'),
 };
 
 function api(path, options = {}) {
@@ -139,11 +145,13 @@ els.tabBtns.forEach((btn) => {
     els.tabCompany.classList.toggle('hidden', tab !== 'company');
     els.tabPatrimonio.classList.toggle('hidden', tab !== 'patrimonio');
     els.tabHealth.classList.toggle('hidden', tab !== 'health');
+    els.tabOpportunities.classList.toggle('hidden', tab !== 'opportunities');
     if (tab === 'routine') loadRoutine();
     if (tab === 'finance') personalFinancePanel.load();
     if (tab === 'company') companyFinancePanel.load();
     if (tab === 'patrimonio') loadPatrimonio();
     if (tab === 'health') loadHealth();
+    if (tab === 'opportunities') loadOpportunities();
   });
 });
 
@@ -584,6 +592,99 @@ els.metricForm.addEventListener('submit', async (e) => {
   els.metricValue.value = '';
   els.metricNote.value = '';
   loadHealth();
+});
+
+// ─── Oportunidades ─────────────────────────────────────────────────
+const STATUS_LABELS = {
+  analisando: 'Analisando',
+  em_andamento: 'Em andamento',
+  aprovada: 'Aprovada',
+  descartada: 'Descartada',
+};
+
+async function loadOpportunities() {
+  try {
+    const { opportunities } = await api('/api/opportunities');
+    renderOpportunities(opportunities);
+  } catch (err) {
+    els.opportunityList.innerHTML = `<li class="task-empty">Erro: ${err.message}</li>`;
+  }
+}
+
+function renderOpportunities(opportunities) {
+  els.opportunityList.innerHTML = '';
+  if (!opportunities.length) {
+    els.opportunityList.innerHTML = '<li class="task-empty">Nenhuma oportunidade registrada ainda.</li>';
+    return;
+  }
+  opportunities.forEach((opp) => {
+    const li = document.createElement('li');
+    li.className = 'opportunity-card';
+
+    const header = document.createElement('div');
+    header.className = 'opp-header';
+    const title = document.createElement('span');
+    title.className = 'opp-title';
+    title.textContent = opp.title;
+    header.appendChild(title);
+
+    const statusSelect = document.createElement('select');
+    Object.entries(STATUS_LABELS).forEach(([value, label]) => {
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = label;
+      if (value === opp.status) option.selected = true;
+      statusSelect.appendChild(option);
+    });
+    statusSelect.addEventListener('change', async () => {
+      await api(`/api/opportunities/${opp.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: statusSelect.value }),
+      });
+      loadOpportunities();
+    });
+    header.appendChild(statusSelect);
+    li.appendChild(header);
+
+    const meta = document.createElement('span');
+    meta.className = 'opp-meta';
+    const parts = [opp.category];
+    if (opp.estimated_value) parts.push(formatCurrency(opp.estimated_value));
+    meta.textContent = parts.join(' · ');
+    li.appendChild(meta);
+
+    if (opp.description) {
+      const desc = document.createElement('span');
+      desc.textContent = opp.description;
+      li.appendChild(desc);
+    }
+    if (opp.next_step) {
+      const next = document.createElement('span');
+      next.className = 'opp-meta';
+      next.textContent = `Próximo passo: ${opp.next_step}`;
+      li.appendChild(next);
+    }
+
+    els.opportunityList.appendChild(li);
+  });
+}
+
+els.opportunityForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const title = els.oppTitle.value.trim();
+  if (!title) return;
+  await api('/api/opportunities', {
+    method: 'POST',
+    body: JSON.stringify({
+      title,
+      category: els.oppCategory.value.trim() || 'negocio',
+      estimated_value: els.oppValue.value ? Number(els.oppValue.value) : undefined,
+    }),
+  });
+  els.oppTitle.value = '';
+  els.oppCategory.value = '';
+  els.oppValue.value = '';
+  loadOpportunities();
 });
 
 // ─── Boot ──────────────────────────────────────────────────────────

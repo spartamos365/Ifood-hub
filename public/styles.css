@@ -203,6 +203,31 @@ select {
   font-size: 1rem;
 }
 
+.hint-text { margin: 0; color: var(--muted); font-size: 0.85rem; line-height: 1.4; }
+
+/* Oportunidades */
+.opportunity-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.opportunity-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.opportunity-card .opp-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.opportunity-card .opp-title { font-weight: 600; }
+.opportunity-card .opp-meta { color: var(--muted); font-size: 0.8rem; }
+.status-badge {
+  font-size: 0.75rem;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+
 /* Patrimônio */
 .networth-chart {
   width: 100%;

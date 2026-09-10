@@ -12,6 +12,7 @@ const routineRoutes = require('./routes/routine');
 const createFinanceRouter = require('./routes/finance');
 const patrimonioRoutes = require('./routes/patrimonio');
 const healthRoutes = require('./routes/health');
+const opportunitiesRoutes = require('./routes/opportunities');
 const { startScheduler, generateBriefing } = require('./scheduler');
 
 const logger = winston.createLogger({
@@ -52,6 +53,7 @@ app.use('/api/finance', requireAuth, createFinanceRouter('pessoal'));
 app.use('/api/company/finance', requireAuth, createFinanceRouter('empresa'));
 app.use('/api/patrimonio', requireAuth, patrimonioRoutes);
 app.use('/api/health', requireAuth, healthRoutes);
+app.use('/api/opportunities', requireAuth, opportunitiesRoutes);
 
 app.post('/api/routine/briefing/generate', requireAuth, async (req, res) => {
   try {

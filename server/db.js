@@ -129,8 +129,12 @@ db.exec(`
     user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
     description TEXT,
-    status TEXT NOT NULL DEFAULT 'analisando',
-    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    category TEXT NOT NULL DEFAULT 'negocio',
+    status TEXT NOT NULL DEFAULT 'analisando' CHECK (status IN ('analisando','em_andamento','aprovada','descartada')),
+    estimated_value REAL,
+    next_step TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 `);
 
