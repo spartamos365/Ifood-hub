@@ -16,8 +16,9 @@ para o que pode evoluir a partir daqui.
   instalar nada além do Node.
 - **Agente de IA**: motor plugável, com *tool calling* — ou seja, o agente de
   verdade cria/consulta tarefas e salva memória, não só conversa. Padrão é
-  **Groq (gratuito)**; dá pra trocar para **Anthropic/Claude (pago)** mudando
-  uma variável no `.env`. Ver [Motor de IA](#motor-de-ia-groq-gr%C3%A1tis-ou-anthropic-pago).
+  **Google Gemini (gratuito)**; dá pra trocar para Groq (gratuito) ou
+  Anthropic/Claude (pago) mudando uma variável no `.env`. Ver
+  [Motor de IA](#motor-de-ia-gemini-gr%C3%A1tis-groq-gr%C3%A1tis-ou-anthropic-pago).
 - **Frontend**: página web simples (`public/`), sem build step, acessível pelo
   navegador do PC e do celular.
 - **Autenticação**: login único (uso pessoal) com email/senha definidos no `.env`,
@@ -34,8 +35,8 @@ para o que pode evoluir a partir daqui.
    cp .env.example .env
    ```
    Você vai precisar de:
-   - `GROQ_API_KEY` (padrão, gratuito): gere em https://console.groq.com/keys
-     — veja [Motor de IA](#motor-de-ia-groq-gr%C3%A1tis-ou-anthropic-pago)
+   - `GEMINI_API_KEY` (padrão, gratuito): gere em https://aistudio.google.com/apikey
+     — veja [Motor de IA](#motor-de-ia-gemini-gr%C3%A1tis-groq-gr%C3%A1tis-ou-anthropic-pago)
    - `ASSISTANT_EMAIL` / `ASSISTANT_PASSWORD`: o login que você vai usar
    - `JWT_SECRET`: qualquer string aleatória longa
    - `USER_NAME`: seu nome, para o agente se dirigir a você
@@ -58,25 +59,33 @@ O celular precisa estar na **mesma rede Wi-Fi** que o PC (ou usar uma VPN tipo
 > Se quiser acessar de fora da sua rede local com segurança, use Tailscale (mais
 > simples e seguro que abrir portas no roteador).
 
-## Motor de IA: Groq (grátis) ou Anthropic (pago)
+## Motor de IA: Gemini (grátis), Groq (grátis) ou Anthropic (pago)
 
 O agente não está preso a um provedor — `server/providers/` tem uma implementação
-para cada um, e `AI_PROVIDER` no `.env` escolhe qual usar. As duas seguem a mesma
+para cada um, e `AI_PROVIDER` no `.env` escolhe qual usar. Todas seguem a mesma
 interface, então trocar de provedor não muda nada no resto do código.
 
-**Groq (padrão, gratuito)**:
+**Google Gemini (padrão, gratuito)**:
+1. Entre com uma conta Google em https://aistudio.google.com.
+2. Gere uma API key em https://aistudio.google.com/apikey.
+3. No `.env`: `AI_PROVIDER=gemini` e `GEMINI_API_KEY=...`.
+4. Roda o modelo Gemini 2.0 Flash por padrão (`GEMINI_MODEL`), com suporte a
+   tool calling e tier gratuito generoso.
+
+**Groq (alternativa gratuita)**:
 1. Crie uma conta grátis em https://console.groq.com (não pede cartão de crédito).
 2. Gere uma API key em https://console.groq.com/keys.
 3. No `.env`: `AI_PROVIDER=groq` e `GROQ_API_KEY=gsk_...`.
-4. Roda o modelo Llama 3.3 70B por padrão (`GROQ_MODEL`), rápido e com suporte a
-   tool calling. Tem limite de uso gratuito generoso, mas é limite — se você bater
-   nele, a Groq retorna erro de rate limit até resetar.
+4. Roda o modelo Llama 3.3 70B por padrão (`GROQ_MODEL`).
 
 **Anthropic/Claude (opcional, pago)**:
 1. Precisa de créditos em https://console.anthropic.com/settings/billing.
 2. No `.env`: `AI_PROVIDER=anthropic`, `ANTHROPIC_API_KEY=sk-ant-...`.
 3. Melhor qualidade de raciocínio e mais confiável no uso das ferramentas, mas
    cobra por uso.
+
+Se um provedor gratuito der problema de login/conta, é só trocar o `AI_PROVIDER`
+no `.env` para outro — o resto da plataforma continua igual.
 
 ## O que já funciona (Fase 1 — núcleo)
 
@@ -174,8 +183,9 @@ server/
   agent.js        # orquestração do agente (system prompt + delega ao provider)
   providers/       # implementações por motor de IA, interface comum
     index.js          # getProvider() lê AI_PROVIDER do .env
-    groq.js              # provedor gratuito (Groq, formato OpenAI-style)
-    anthropic.js           # provedor pago (Claude, formato Anthropic nativo)
+    gemini.js            # provedor gratuito (Google Gemini, padrão)
+    groq.js                 # provedor gratuito (Groq, alternativa)
+    anthropic.js               # provedor pago (Claude)
   tools.js         # ferramentas que o agente pode executar
   finance.js         # lógica de contas/transações/resumo (usada por rotas e agente)
   patrimonio.js        # lógica de ativos/passivos/patrimônio líquido

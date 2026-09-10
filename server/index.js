@@ -21,8 +21,9 @@ const logger = winston.createLogger({
   transports: [new winston.transports.Console()],
 });
 
-const aiProvider = (process.env.AI_PROVIDER || 'groq').toLowerCase();
-const providerKeyVar = aiProvider === 'anthropic' ? 'ANTHROPIC_API_KEY' : 'GROQ_API_KEY';
+const aiProvider = (process.env.AI_PROVIDER || 'gemini').toLowerCase();
+const providerKeyVars = { anthropic: 'ANTHROPIC_API_KEY', groq: 'GROQ_API_KEY', gemini: 'GEMINI_API_KEY' };
+const providerKeyVar = providerKeyVars[aiProvider] || 'GEMINI_API_KEY';
 
 const requiredEnv = [providerKeyVar, 'ASSISTANT_EMAIL', 'ASSISTANT_PASSWORD', 'JWT_SECRET'];
 const missing = requiredEnv.filter(k => !process.env[k]);
