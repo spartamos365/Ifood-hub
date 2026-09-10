@@ -44,6 +44,10 @@ const els = {
   txAmount: document.getElementById('tx-amount'),
   txType: document.getElementById('tx-type'),
   txCategory: document.getElementById('tx-category'),
+  importForm: document.getElementById('import-form'),
+  importAccount: document.getElementById('import-account'),
+  importFile: document.getElementById('import-file'),
+  importResult: document.getElementById('import-result'),
   bizStatBalance: document.getElementById('biz-stat-balance'),
   bizStatIncome: document.getElementById('biz-stat-income'),
   bizStatExpense: document.getElementById('biz-stat-expense'),
@@ -59,6 +63,10 @@ const els = {
   bizTxAmount: document.getElementById('biz-tx-amount'),
   bizTxType: document.getElementById('biz-tx-type'),
   bizTxCategory: document.getElementById('biz-tx-category'),
+  bizImportForm: document.getElementById('biz-import-form'),
+  bizImportAccount: document.getElementById('biz-import-account'),
+  bizImportFile: document.getElementById('biz-import-file'),
+  bizImportResult: document.getElementById('biz-import-result'),
   statNetworth: document.getElementById('stat-networth'),
   statAssets: document.getElementById('stat-assets'),
   statLiabilities: document.getElementById('stat-liabilities'),
@@ -327,6 +335,7 @@ function formatCurrency(value) {
 function renderAccountsInto(e, accounts) {
   e.accountList.innerHTML = '';
   e.txAccount.innerHTML = '';
+  if (e.importAccount) e.importAccount.innerHTML = '';
 
   if (!accounts.length) {
     e.accountList.innerHTML = '<li class="task-empty">Nenhuma conta cadastrada ainda.</li>';
@@ -346,6 +355,13 @@ function renderAccountsInto(e, accounts) {
     option.value = acc.name;
     option.textContent = acc.name;
     e.txAccount.appendChild(option);
+
+    if (e.importAccount) {
+      const importOption = document.createElement('option');
+      importOption.value = acc.id;
+      importOption.textContent = acc.name;
+      e.importAccount.appendChild(importOption);
+    }
   });
 }
 
@@ -461,6 +477,32 @@ function createFinancePanel(apiPrefix, e) {
     load();
   });
 
+  if (e.importForm) {
+    e.importForm.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const accountId = e.importAccount.value;
+      const file = e.importFile.files[0];
+      if (!accountId || !file) {
+        e.importResult.textContent = 'Selecione uma conta e um arquivo CSV.';
+        return;
+      }
+      e.importResult.textContent = 'Importando...';
+      try {
+        const csv = await file.text();
+        const result = await api(`${apiPrefix}/accounts/${accountId}/import`, {
+          method: 'POST',
+          body: JSON.stringify({ csv }),
+        });
+        const errorNote = result.errors.length ? ` — ${result.errors.slice(0, 3).join('; ')}` : '';
+        e.importResult.textContent = `${result.imported} importadas, ${result.skipped} já existiam, ${result.errors.length} com erro${errorNote}`;
+        e.importFile.value = '';
+        load();
+      } catch (err) {
+        e.importResult.textContent = `Erro: ${err.message}`;
+      }
+    });
+  }
+
   return { load };
 }
 
@@ -472,6 +514,8 @@ const personalFinancePanel = createFinancePanel('/api/finance', {
   transactionForm: els.transactionForm, txAccount: els.txAccount,
   txDescription: els.txDescription, txAmount: els.txAmount,
   txType: els.txType, txCategory: els.txCategory,
+  importForm: els.importForm, importAccount: els.importAccount,
+  importFile: els.importFile, importResult: els.importResult,
 });
 
 const companyFinancePanel = createFinancePanel('/api/company/finance', {
@@ -482,6 +526,8 @@ const companyFinancePanel = createFinancePanel('/api/company/finance', {
   transactionForm: els.bizTransactionForm, txAccount: els.bizTxAccount,
   txDescription: els.bizTxDescription, txAmount: els.bizTxAmount,
   txType: els.bizTxType, txCategory: els.bizTxCategory,
+  importForm: els.bizImportForm, importAccount: els.bizImportAccount,
+  importFile: els.bizImportFile, importResult: els.bizImportResult,
 });
 
 // ─── Patrimônio ────────────────────────────────────────────────────

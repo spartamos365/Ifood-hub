@@ -125,6 +125,30 @@ no `.env` para outro — o resto da plataforma continua igual.
   ("gastei 50 no mercado").
 - Resumo financeiro do mês: saldo total, receitas, despesas e gastos por
   categoria, visível no painel de Finanças.
+- **Import de extrato via CSV** (Fase 6): em vez de lançar cada transação na
+  mão, importe um arquivo CSV inteiro de uma vez, tanto nas finanças
+  pessoais quanto nas da empresa. Pesquisei as opções de Open Finance
+  (Pluggy, Belvo) para import automático direto do banco, mas exigem conta
+  de desenvolvedor e plano pago para uso em produção — inviável para uso
+  pessoal agora, por isso optei pelo CSV, que é grátis e funciona hoje.
+
+  Formato esperado (cabeçalho na primeira linha, `,` ou `;` como separador):
+  ```
+  data,descricao,valor,categoria
+  2026-01-05,Salário,6000,salario
+  05/01/2026,Supermercado,-380.50,mercado
+  ```
+  - `data`: opcional. Aceita `AAAA-MM-DD` ou `DD/MM/AAAA`. Sem essa coluna,
+    a transação é registrada com a data/hora do import.
+  - `valor`: positivo para entrada, negativo para saída. Aceita ponto ou
+    vírgula como separador decimal (não misture com o separador de coluna).
+  - `categoria`: opcional.
+  - Reimportar o mesmo arquivo não duplica as transações (detecta pela
+    combinação conta + descrição + valor + data) — mas isso só funciona de
+    verdade se a coluna `data` estiver presente; sem data, cada import gera
+    lançamentos novos.
+  - A maioria dos bancos permite exportar o extrato como CSV/planilha; é só
+    reorganizar as colunas nesse formato (no Excel/Google Sheets mesmo).
 
 ## O que já funciona (Fase 2b — patrimônio)
 
@@ -183,20 +207,26 @@ Todos os módulos pedidos inicialmente (finanças pessoais, financeiro da
 empresa, saúde, patrimônio, oportunidades de negócio/investimento) estão
 implementados, plugados no mesmo núcleo (agente + memória + rotina):
 
-- [x] **Finanças pessoais**: contas, gastos, receitas, resumo por categoria.
+- [x] **Finanças pessoais**: contas, gastos, receitas, resumo por categoria,
+      import de extrato via CSV.
 - [x] **Patrimônio**: ativos, passivos, patrimônio líquido e evolução no tempo.
-- [x] **Financeiro da empresa**: contas, receitas/despesas e resumo, isolado do pessoal.
+- [x] **Financeiro da empresa**: contas, receitas/despesas e resumo, isolado do
+      pessoal, também com import de extrato via CSV.
 - [x] **Saúde pessoal**: métricas livres (peso, sono, treino, pressão...) e tendência.
 - [x] **Oportunidades de negócio/investimento**: registro, triagem, análise por
       raciocínio do agente, e busca real na web opcional via Tavily (Fase 4).
+- [x] **Entrada por voz** no chat (Fase 5), com aviso de que precisa de HTTPS
+      pra funcionar pelo celular (ver seção acima).
 
 Próximas evoluções sugeridas (nenhuma delas obrigatória, mas onde investir se
 quiser ir além):
 
-- **Import automático de extrato bancário** (Open Finance/Pluggy, ou upload de
-  CSV) em vez de lançar transações manualmente.
+- **Import automático de extrato bancário** direto do banco (Open
+  Finance/Pluggy ou Belvo) em vez de CSV manual — pesquisei e hoje isso
+  exige conta de desenvolvedor e plano pago para uso em produção, por isso
+  fica como evolução futura e não como algo pronto agora.
 - **Notificações push** no celular para lembretes e o resumo matinal, em vez
-  de só aparecer quando você abre o app.
+  de só aparecer quando você abre o app (também precisa de HTTPS, como a voz).
 - **Multiplos usuários/perfis**, caso um dia queira dar acesso a outra pessoa
   (hoje é single-user por design, de propósito, para manter simples).
 
@@ -227,6 +257,7 @@ server/
     health.js                          # métricas de saúde, últimas leituras, tendência
     opportunities.js                     # board de oportunidades de negócio/investimento
     search.js                              # busca na web via Tavily (opcional)
+    csv-import.js                            # parser de CSV para import de extrato
 public/
   index.html, app.js, styles.css   # frontend (chat + rotina + finanças + empresa +
                                     # patrimônio + saúde + oportunidades)

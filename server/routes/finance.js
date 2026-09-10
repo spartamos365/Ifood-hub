@@ -58,6 +58,19 @@ module.exports = function createFinanceRouter(scope) {
     res.json({ success: true });
   });
 
+  // POST /accounts/:id/import — importa transações de um extrato em CSV
+  // (ver server/csv-import.js para o formato esperado)
+  router.post('/accounts/:id/import', (req, res) => {
+    const { csv } = req.body || {};
+    if (!csv || !csv.trim()) return res.status(400).json({ error: 'Conteúdo CSV vazio' });
+    try {
+      const result = finance.importTransactions(req.userId, req.params.id, csv);
+      res.json(result);
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
   router.get('/summary', (req, res) => {
     const period = req.query.period || 'month';
     res.json(finance.summary(req.userId, { period, scope }));

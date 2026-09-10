@@ -1,8 +1,24 @@
 const { v4: uuidv4 } = require('uuid');
 const db = require('./db');
+const { parseCsv } = require('./csv-import');
 
 // Lógica de finanças pessoais, compartilhada entre as rotas HTTP (routes/finance.js)
 // e as ferramentas do agente (tools.js), para não duplicar regras.
+
+// Insere a transação e atualiza o saldo da conta — usado tanto por
+// addTransaction (transação única) quanto por importTransactions (import
+// de CSV em lote), que têm regras de deduplicação diferentes.
+function insertTransaction(accountId, { description, amount, category, occurred_at }) {
+  const id = uuidv4();
+  db.prepare(`
+    INSERT INTO finance_transactions (id, account_id, description, amount, category, occurred_at)
+    VALUES (?, ?, ?, ?, ?, COALESCE(?, datetime('now')))
+  `).run(id, accountId, description, amount, category || 'outros', occurred_at || null);
+
+  db.prepare('UPDATE finance_accounts SET balance = balance + ? WHERE id = ?').run(amount, accountId);
+
+  return db.prepare('SELECT * FROM finance_transactions WHERE id = ?').get(id);
+}
 
 function listAccounts(userId, scope = 'pessoal') {
   return db.prepare('SELECT * FROM finance_accounts WHERE user_id = ? AND scope = ? ORDER BY created_at ASC')
@@ -72,15 +88,45 @@ function addTransaction(userId, { account_id, description, amount, category, occ
   `).get(account_id, description, amount, category || 'outros');
   if (dup) return dup;
 
-  const id = uuidv4();
-  db.prepare(`
-    INSERT INTO finance_transactions (id, account_id, description, amount, category, occurred_at)
-    VALUES (?, ?, ?, ?, ?, COALESCE(?, datetime('now')))
-  `).run(id, account_id, description, amount, category || 'outros', occurred_at || null);
+  return insertTransaction(account_id, { description, amount, category, occurred_at });
+}
 
-  db.prepare('UPDATE finance_accounts SET balance = balance + ? WHERE id = ?').run(amount, account_id);
+// Importa transações de um CSV (ver server/csv-import.js para o formato).
+// Deduplicação estrita (sem janela de tempo): compara conta + descrição +
+// valor + data exatos, pra evitar duplicar tudo se o mesmo arquivo for
+// importado de novo semanas depois.
+function importTransactions(userId, accountId, csvText) {
+  const account = db.prepare('SELECT * FROM finance_accounts WHERE id = ? AND user_id = ?').get(accountId, userId);
+  if (!account) throw new Error('Conta não encontrada');
 
-  return db.prepare('SELECT * FROM finance_transactions WHERE id = ?').get(id);
+  const rows = parseCsv(csvText);
+  let imported = 0;
+  let skipped = 0;
+  const errors = [];
+
+  for (const row of rows) {
+    if (row.error) {
+      errors.push(`Linha ${row.line}: ${row.error}`);
+      continue;
+    }
+
+    const dup = db.prepare(`
+      SELECT id FROM finance_transactions
+      WHERE account_id = ? AND description = ? AND amount = ? AND occurred_at IS ?
+    `).get(accountId, row.description, row.amount, row.occurred_at);
+
+    if (dup) {
+      skipped += 1;
+      continue;
+    }
+
+    insertTransaction(accountId, {
+      description: row.description, amount: row.amount, category: row.category, occurred_at: row.occurred_at,
+    });
+    imported += 1;
+  }
+
+  return { imported, skipped, total: rows.length, errors };
 }
 
 function deleteTransaction(userId, transactionId) {
@@ -157,5 +203,5 @@ function summary(userId, { scope = 'pessoal', period = 'month' } = {}) {
 
 module.exports = {
   listAccounts, createAccount, updateAccount, deleteAccount,
-  addTransaction, deleteTransaction, listTransactions, summary,
+  addTransaction, deleteTransaction, listTransactions, summary, importTransactions,
 };

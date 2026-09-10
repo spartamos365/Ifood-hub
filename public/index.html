@@ -101,6 +101,19 @@
 
       <section>
         <div class="section-header">
+          <h2>Importar extrato (CSV)</h2>
+        </div>
+        <p class="hint-text">Colunas: <code>data,descricao,valor,categoria</code>. Data em AAAA-MM-DD ou DD/MM/AAAA, valor com ponto decimal.</p>
+        <form id="import-form" class="inline-form">
+          <select id="import-account"></select>
+          <input id="import-file" type="file" accept=".csv,text/csv" />
+          <button type="submit">Importar</button>
+        </form>
+        <p id="import-result" class="hint-text"></p>
+      </section>
+
+      <section>
+        <div class="section-header">
           <h2>Gastos por categoria (mês)</h2>
         </div>
         <ul id="category-list" class="category-list"></ul>
@@ -152,6 +165,19 @@
           <input id="biz-account-balance" type="number" step="0.01" placeholder="Saldo inicial" />
           <button type="submit">Adicionar conta</button>
         </form>
+      </section>
+
+      <section>
+        <div class="section-header">
+          <h2>Importar extrato (CSV)</h2>
+        </div>
+        <p class="hint-text">Colunas: <code>data,descricao,valor,categoria</code>. Data em AAAA-MM-DD ou DD/MM/AAAA, valor com ponto decimal.</p>
+        <form id="biz-import-form" class="inline-form">
+          <select id="biz-import-account"></select>
+          <input id="biz-import-file" type="file" accept=".csv,text/csv" />
+          <button type="submit">Importar</button>
+        </form>
+        <p id="biz-import-result" class="hint-text"></p>
       </section>
 
       <section>
