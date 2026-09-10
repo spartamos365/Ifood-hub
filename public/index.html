@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Assistente Pessoal</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div id="login-screen" class="screen">
+    <form id="login-form" class="login-card">
+      <h1>Assistente Pessoal</h1>
+      <p class="subtitle">Entre para continuar</p>
+      <input id="login-email" type="email" placeholder="Email" autocomplete="username" required />
+      <input id="login-password" type="password" placeholder="Senha" autocomplete="current-password" required />
+      <button type="submit">Entrar</button>
+      <p id="login-error" class="error"></p>
+    </form>
+  </div>
+
+  <div id="app-screen" class="screen hidden">
+    <header class="topbar">
+      <span class="brand">Assistente</span>
+      <nav class="tabs">
+        <button class="tab-btn active" data-tab="chat">Chat</button>
+        <button class="tab-btn" data-tab="routine">Rotina</button>
+      </nav>
+      <button id="logout-btn" class="ghost-btn">Sair</button>
+    </header>
+
+    <main id="tab-chat" class="tab-panel">
+      <div id="messages" class="messages"></div>
+      <form id="chat-form" class="chat-input">
+        <input id="chat-text" type="text" placeholder="Fale com seu assistente..." autocomplete="off" required />
+        <button type="submit">Enviar</button>
+      </form>
+    </main>
+
+    <main id="tab-routine" class="tab-panel hidden">
+      <section class="briefing-card">
+        <div class="briefing-header">
+          <h2>Resumo de hoje</h2>
+          <button id="gen-briefing-btn" class="ghost-btn small">Gerar agora</button>
+        </div>
+        <p id="briefing-text" class="briefing-text">Nenhum resumo gerado ainda hoje.</p>
+      </section>
+
+      <section>
+        <div class="section-header">
+          <h2>Tarefas de hoje</h2>
+        </div>
+        <ul id="task-list" class="task-list"></ul>
+      </section>
+
+      <form id="task-form" class="task-form">
+        <input id="task-title" type="text" placeholder="Nova tarefa..." required />
+        <input id="task-due" type="datetime-local" />
+        <button type="submit">Adicionar</button>
+      </form>
+    </main>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
