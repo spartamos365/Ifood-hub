@@ -24,6 +24,7 @@
       <nav class="tabs">
         <button class="tab-btn active" data-tab="chat">Chat</button>
         <button class="tab-btn" data-tab="routine">Rotina</button>
+        <button class="tab-btn" data-tab="finance">Finanças</button>
       </nav>
       <button id="logout-btn" class="ghost-btn">Sair</button>
     </header>
@@ -56,6 +57,61 @@
         <input id="task-title" type="text" placeholder="Nova tarefa..." required />
         <input id="task-due" type="datetime-local" />
         <button type="submit">Adicionar</button>
+      </form>
+    </main>
+
+    <main id="tab-finance" class="tab-panel hidden">
+      <section class="finance-summary">
+        <div class="stat-card">
+          <span class="stat-label">Saldo total</span>
+          <span id="stat-balance" class="stat-value">R$ 0,00</span>
+        </div>
+        <div class="stat-card income">
+          <span class="stat-label">Receitas (mês)</span>
+          <span id="stat-income" class="stat-value">R$ 0,00</span>
+        </div>
+        <div class="stat-card expense">
+          <span class="stat-label">Despesas (mês)</span>
+          <span id="stat-expense" class="stat-value">R$ 0,00</span>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-header">
+          <h2>Contas</h2>
+        </div>
+        <ul id="account-list" class="account-list"></ul>
+        <form id="account-form" class="inline-form">
+          <input id="account-name" type="text" placeholder="Nome da conta (ex: Nubank)" required />
+          <input id="account-balance" type="number" step="0.01" placeholder="Saldo inicial" />
+          <button type="submit">Adicionar conta</button>
+        </form>
+      </section>
+
+      <section>
+        <div class="section-header">
+          <h2>Gastos por categoria (mês)</h2>
+        </div>
+        <ul id="category-list" class="category-list"></ul>
+      </section>
+
+      <section>
+        <div class="section-header">
+          <h2>Transações recentes</h2>
+        </div>
+        <ul id="transaction-list" class="transaction-list"></ul>
+      </section>
+
+      <form id="transaction-form" class="task-form">
+        <select id="tx-account"></select>
+        <input id="tx-description" type="text" placeholder="Descrição" required />
+        <input id="tx-amount" type="number" step="0.01" placeholder="Valor" required />
+        <select id="tx-type">
+          <option value="despesa">Despesa</option>
+          <option value="receita">Receita</option>
+        </select>
+        <input id="tx-category" type="text" placeholder="Categoria" />
+        <button type="submit">Registrar</button>
       </form>
     </main>
   </div>

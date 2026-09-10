@@ -66,6 +66,16 @@ O celular precisa estar na **mesma rede Wi-Fi** que o PC (ou usar uma VPN tipo
 - Resumo matinal automático (gerado todo dia às 7h, fuso configurável em
   `TIMEZONE`), ou sob demanda pelo botão "Gerar agora".
 
+## O que já funciona (Fase 2a — finanças pessoais)
+
+- Contas financeiras pessoais (conta corrente, poupança, carteira, cartão etc),
+  com saldo atualizado automaticamente a cada transação.
+- Registro de receitas e despesas, por categoria, pelo painel ou pelo chat — o
+  agente registra proativamente quando você menciona um gasto/recebimento
+  ("gastei 50 no mercado").
+- Resumo financeiro do mês: saldo total, receitas, despesas e gastos por
+  categoria, visível no painel de Finanças.
+
 ## Roadmap
 
 A plataforma foi desenhada para crescer em módulos, todos plugados no mesmo
@@ -74,7 +84,7 @@ está no `server/db.js` (tabelas `finance_accounts`, `finance_transactions`,
 `health_logs`, `assets`, `opportunities`), prontas para receber as rotas e
 ferramentas do agente:
 
-- [ ] **Finanças pessoais**: contas, gastos, orçamento, metas.
+- [x] **Finanças pessoais**: contas, gastos, receitas, resumo por categoria.
 - [ ] **Financeiro da empresa**: fluxo de caixa, contas a pagar/receber, DRE simples.
 - [ ] **Saúde pessoal**: hábitos, exames, métricas (sono, peso, treino), lembretes.
 - [ ] **Patrimônio**: bens, investimentos, evolução de patrimônio líquido no tempo.
@@ -93,10 +103,12 @@ server/
   auth.js         # login single-user + JWT
   agent.js        # orquestração do agente Claude (system prompt + tool loop)
   tools.js         # ferramentas que o agente pode executar
-  scheduler.js      # geração do resumo matinal (cron)
+  finance.js         # lógica de contas/transações/resumo (usada por rotas e agente)
+  scheduler.js          # geração do resumo matinal (cron)
   routes/
-    chat.js          # POST /api/chat
-    routine.js         # tarefas, agenda de hoje, memória
+    chat.js                # POST /api/chat
+    routine.js               # tarefas, agenda de hoje, memória
+    finance.js                 # contas, transações, resumo financeiro
 public/
-  index.html, app.js, styles.css   # frontend (chat + rotina)
+  index.html, app.js, styles.css   # frontend (chat + rotina + finanças)
 ```

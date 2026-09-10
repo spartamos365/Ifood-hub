@@ -1,9 +1,11 @@
 const { v4: uuidv4 } = require('uuid');
 const db = require('./db');
+const finance = require('./finance');
 
 // Ferramentas que o agente pode chamar para agir de verdade (nao so conversar).
-// Fase 1: rotina/tarefas + memoria de longo prazo. Financas, saude, patrimonio
-// e busca de negocios entram em fases seguintes, plugando novas ferramentas aqui.
+// Fase 1: rotina/tarefas + memoria de longo prazo. Fase 2a: financas pessoais.
+// Saude, patrimonio e busca de negocios entram em fases seguintes, plugando
+// novas ferramentas aqui.
 
 const definitions = [
   {
@@ -66,6 +68,63 @@ const definitions = [
       required: ['query'],
     },
   },
+
+  // ─── Finanças pessoais (Fase 2a) ─────────────────────────────────────
+  {
+    name: 'create_finance_account',
+    description: 'Cria uma conta financeira pessoal (conta corrente, poupança, carteira, cartão etc).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Nome da conta, ex: "Nubank", "Carteira"' },
+        type: { type: 'string', description: 'Tipo livre, ex: corrente, poupança, carteira, cartão de crédito, investimento' },
+        initial_balance: { type: 'number', description: 'Saldo inicial da conta' },
+      },
+      required: ['name'],
+    },
+  },
+  {
+    name: 'list_finance_accounts',
+    description: 'Lista as contas financeiras pessoais do usuário com seus saldos atuais.',
+    input_schema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'log_transaction',
+    description: 'Registra uma entrada (receita) ou saída (despesa) financeira. Use amount positivo para receita e negativo para despesa.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        description: { type: 'string', description: 'Descrição da transação, ex: "Supermercado", "Salário"' },
+        amount: { type: 'number', description: 'Valor: positivo = entrada/receita, negativo = saída/despesa' },
+        category: { type: 'string', description: 'Categoria livre, ex: mercado, transporte, moradia, lazer, saúde, salário' },
+        account_name: { type: 'string', description: 'Nome da conta a debitar/creditar. Se omitido e houver só uma conta, usa ela.' },
+        occurred_at: { type: 'string', description: 'Data/hora em ISO 8601, se não for agora' },
+      },
+      required: ['description', 'amount'],
+    },
+  },
+  {
+    name: 'list_transactions',
+    description: 'Lista as transações financeiras recentes, com filtro opcional por conta e categoria.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        account_name: { type: 'string' },
+        category: { type: 'string' },
+        limit: { type: 'number' },
+      },
+    },
+  },
+  {
+    name: 'get_finance_summary',
+    description: 'Retorna o resumo financeiro pessoal: saldo total, receitas, despesas e gastos por categoria no período.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        period: { type: 'string', enum: ['today', 'week', 'month', 'all'], description: 'Período do resumo, padrão "month"' },
+      },
+    },
+  },
 ];
 
 function execute(userId, name, input) {
@@ -115,6 +174,61 @@ function execute(userId, name, input) {
         ORDER BY created_at DESC LIMIT 20
       `).all(userId, `%${input.query}%`);
       return rows;
+    }
+
+    case 'create_finance_account': {
+      try {
+        return finance.createAccount(userId, {
+          name: input.name, type: input.type, initial_balance: input.initial_balance,
+        });
+      } catch (err) {
+        return { error: err.message };
+      }
+    }
+
+    case 'list_finance_accounts': {
+      return finance.listAccounts(userId);
+    }
+
+    case 'log_transaction': {
+      const accounts = finance.listAccounts(userId);
+      let accountId = null;
+
+      if (input.account_name) {
+        const match = accounts.find(a => a.name.toLowerCase() === input.account_name.toLowerCase());
+        if (!match) return { error: `Conta "${input.account_name}" não encontrada`, accounts: accounts.map(a => a.name) };
+        accountId = match.id;
+      } else if (accounts.length === 1) {
+        accountId = accounts[0].id;
+      } else if (accounts.length === 0) {
+        return { error: 'Nenhuma conta cadastrada ainda. Crie uma com create_finance_account antes de registrar transações.' };
+      } else {
+        return { error: 'Mais de uma conta encontrada, especifique account_name.', accounts: accounts.map(a => a.name) };
+      }
+
+      try {
+        return finance.addTransaction(userId, {
+          account_id: accountId, description: input.description, amount: input.amount,
+          category: input.category, occurred_at: input.occurred_at,
+        });
+      } catch (err) {
+        return { error: err.message };
+      }
+    }
+
+    case 'list_transactions': {
+      const accounts = finance.listAccounts(userId);
+      let accountId;
+      if (input.account_name) {
+        const match = accounts.find(a => a.name.toLowerCase() === input.account_name.toLowerCase());
+        if (!match) return { error: `Conta "${input.account_name}" não encontrada` };
+        accountId = match.id;
+      }
+      return finance.listTransactions(userId, { accountId, category: input.category, limit: input.limit });
+    }
+
+    case 'get_finance_summary': {
+      return finance.summary(userId, { period: input.period || 'month' });
     }
 
     default:

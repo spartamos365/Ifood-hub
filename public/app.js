@@ -14,6 +14,7 @@ const els = {
   tabBtns: document.querySelectorAll('.tab-btn'),
   tabChat: document.getElementById('tab-chat'),
   tabRoutine: document.getElementById('tab-routine'),
+  tabFinance: document.getElementById('tab-finance'),
   messages: document.getElementById('messages'),
   chatForm: document.getElementById('chat-form'),
   chatText: document.getElementById('chat-text'),
@@ -23,6 +24,21 @@ const els = {
   taskForm: document.getElementById('task-form'),
   taskTitle: document.getElementById('task-title'),
   taskDue: document.getElementById('task-due'),
+  statBalance: document.getElementById('stat-balance'),
+  statIncome: document.getElementById('stat-income'),
+  statExpense: document.getElementById('stat-expense'),
+  accountList: document.getElementById('account-list'),
+  accountForm: document.getElementById('account-form'),
+  accountName: document.getElementById('account-name'),
+  accountBalance: document.getElementById('account-balance'),
+  categoryList: document.getElementById('category-list'),
+  transactionList: document.getElementById('transaction-list'),
+  transactionForm: document.getElementById('transaction-form'),
+  txAccount: document.getElementById('tx-account'),
+  txDescription: document.getElementById('tx-description'),
+  txAmount: document.getElementById('tx-amount'),
+  txType: document.getElementById('tx-type'),
+  txCategory: document.getElementById('tx-category'),
 };
 
 function api(path, options = {}) {
@@ -84,7 +100,9 @@ els.tabBtns.forEach((btn) => {
     const tab = btn.dataset.tab;
     els.tabChat.classList.toggle('hidden', tab !== 'chat');
     els.tabRoutine.classList.toggle('hidden', tab !== 'routine');
+    els.tabFinance.classList.toggle('hidden', tab !== 'finance');
     if (tab === 'routine') loadRoutine();
+    if (tab === 'finance') loadFinance();
   });
 });
 
@@ -209,6 +227,144 @@ els.genBriefingBtn.addEventListener('click', async () => {
   } catch (err) {
     els.briefingText.textContent = `Erro: ${err.message}`;
   }
+});
+
+// ─── Finanças ──────────────────────────────────────────────────────
+function formatCurrency(value) {
+  return (value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+async function loadFinance() {
+  try {
+    const [summary, accounts, transactions] = await Promise.all([
+      api('/api/finance/summary?period=month'),
+      api('/api/finance/accounts'),
+      api('/api/finance/transactions?limit=20'),
+    ]);
+    els.statBalance.textContent = formatCurrency(summary.totalBalance);
+    els.statIncome.textContent = formatCurrency(summary.income);
+    els.statExpense.textContent = formatCurrency(summary.expense);
+
+    renderAccounts(accounts.accounts);
+    renderCategories(summary.byCategory);
+    renderTransactions(transactions.transactions);
+  } catch (err) {
+    els.statBalance.textContent = `Erro: ${err.message}`;
+  }
+}
+
+function renderAccounts(accounts) {
+  els.accountList.innerHTML = '';
+  els.txAccount.innerHTML = '';
+
+  if (!accounts.length) {
+    els.accountList.innerHTML = '<li class="task-empty">Nenhuma conta cadastrada ainda.</li>';
+  }
+
+  accounts.forEach((acc) => {
+    const li = document.createElement('li');
+    li.className = 'account-item';
+    li.innerHTML = `<span>${acc.name} <span class="tx-meta">(${acc.type})</span></span>`;
+    const balance = document.createElement('span');
+    balance.className = acc.balance >= 0 ? 'amount-positive' : 'amount-negative';
+    balance.textContent = formatCurrency(acc.balance);
+    li.appendChild(balance);
+    els.accountList.appendChild(li);
+
+    const option = document.createElement('option');
+    option.value = acc.name;
+    option.textContent = acc.name;
+    els.txAccount.appendChild(option);
+  });
+}
+
+function renderCategories(categories) {
+  els.categoryList.innerHTML = '';
+  if (!categories.length) {
+    els.categoryList.innerHTML = '<li class="task-empty">Nenhum gasto registrado este mês.</li>';
+    return;
+  }
+  categories.forEach((c) => {
+    const li = document.createElement('li');
+    li.className = 'category-item';
+    li.innerHTML = `<span>${c.category}</span>`;
+    const total = document.createElement('span');
+    total.className = 'amount-negative';
+    total.textContent = formatCurrency(c.total);
+    li.appendChild(total);
+    els.categoryList.appendChild(li);
+  });
+}
+
+function renderTransactions(transactions) {
+  els.transactionList.innerHTML = '';
+  if (!transactions.length) {
+    els.transactionList.innerHTML = '<li class="task-empty">Nenhuma transação ainda.</li>';
+    return;
+  }
+  transactions.forEach((tx) => {
+    const li = document.createElement('li');
+    li.className = 'transaction-item';
+
+    const info = document.createElement('div');
+    info.className = 'tx-info';
+    const title = document.createElement('span');
+    title.textContent = tx.description;
+    const meta = document.createElement('span');
+    meta.className = 'tx-meta';
+    meta.textContent = `${tx.account_name} · ${tx.category} · ${new Date(tx.occurred_at).toLocaleDateString('pt-BR')}`;
+    info.appendChild(title);
+    info.appendChild(meta);
+
+    const amount = document.createElement('span');
+    amount.className = tx.amount >= 0 ? 'amount-positive' : 'amount-negative';
+    amount.textContent = formatCurrency(tx.amount);
+
+    li.appendChild(info);
+    li.appendChild(amount);
+    els.transactionList.appendChild(li);
+  });
+}
+
+els.accountForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const name = els.accountName.value.trim();
+  if (!name) return;
+  await api('/api/finance/accounts', {
+    method: 'POST',
+    body: JSON.stringify({ name, initial_balance: Number(els.accountBalance.value) || 0 }),
+  });
+  els.accountName.value = '';
+  els.accountBalance.value = '';
+  loadFinance();
+});
+
+els.transactionForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const accountName = els.txAccount.value;
+  if (!accountName) {
+    alert('Cadastre uma conta primeiro.');
+    return;
+  }
+  const accounts = await api('/api/finance/accounts');
+  const account = accounts.accounts.find((a) => a.name === accountName);
+  const rawAmount = Math.abs(Number(els.txAmount.value));
+  const amount = els.txType.value === 'despesa' ? -rawAmount : rawAmount;
+
+  await api('/api/finance/transactions', {
+    method: 'POST',
+    body: JSON.stringify({
+      account_id: account.id,
+      description: els.txDescription.value.trim(),
+      amount,
+      category: els.txCategory.value.trim() || 'outros',
+    }),
+  });
+
+  els.txDescription.value = '';
+  els.txAmount.value = '';
+  els.txCategory.value = '';
+  loadFinance();
 });
 
 // ─── Boot ──────────────────────────────────────────────────────────
