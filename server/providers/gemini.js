@@ -49,18 +49,17 @@ async function runConversation(systemPrompt, history, userMessage, toolDefs, exe
     const modelParts = response.candidates[0].content.parts;
     contents.push({ role: 'model', parts: modelParts });
 
-    contents.push({
-      role: 'user',
-      parts: calls.map(c => {
-        let result;
-        try {
-          result = executeTool(c.name, c.args || {});
-        } catch (err) {
-          result = { error: err.message };
-        }
-        return { functionResponse: { id: c.id, name: c.name, response: { result } } };
-      }),
-    });
+    const responseParts = [];
+    for (const c of calls) {
+      let result;
+      try {
+        result = await executeTool(c.name, c.args || {});
+      } catch (err) {
+        result = { error: err.message };
+      }
+      responseParts.push({ functionResponse: { id: c.id, name: c.name, response: { result } } });
+    }
+    contents.push({ role: 'user', parts: responseParts });
   }
 
   return 'Desculpa, precisei de passos demais para responder isso — pode reformular ou dividir o pedido?';

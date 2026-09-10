@@ -1,5 +1,6 @@
 const db = require('./db');
 const tools = require('./tools');
+const search = require('./search');
 const { getProvider } = require('./providers');
 
 function buildSystemPrompt(userId) {
@@ -36,11 +37,14 @@ Hoje você tem ferramentas para:
   (log_health_metric), ver a última leitura de cada métrica (list_health_metrics) e
   consultar a tendência de uma métrica no tempo (get_health_history).
 - Acompanhar oportunidades de negócio/investimento: registrar (create_opportunity), listar
-  (list_opportunities) e atualizar status/próximos passos (update_opportunity). IMPORTANTE:
-  você NÃO tem acesso a busca na web nem a dados de mercado em tempo real — sua análise de
-  cada oportunidade é baseada só no seu raciocínio e no que ${userName} contar na conversa.
-  Nunca finja ter pesquisado preços, cotações ou notícias atuais; deixe claro quando uma
-  recomendação é uma opinião geral e não dado de mercado verificado.
+  (list_opportunities) e atualizar status/próximos passos (update_opportunity).${search.isConfigured() ? `
+  Você TEM acesso a busca real na web (search_web) — use antes de opinar sobre algo que
+  dependa de dados atuais (preços, concorrência, notícias, cotações), e cite as fontes/links
+  que encontrar na sua resposta.` : `
+  IMPORTANTE: você NÃO tem acesso a busca na web nem a dados de mercado em tempo real —
+  sua análise de cada oportunidade é baseada só no seu raciocínio e no que ${userName}
+  contar na conversa. Nunca finja ter pesquisado preços, cotações ou notícias atuais; deixe
+  claro quando uma recomendação é uma opinião geral e não dado de mercado verificado.`}
 
 Fatos e preferências já conhecidos sobre ${userName}:
 ${memoryBlock}
@@ -51,7 +55,7 @@ Diretrizes:
 - Se não houver nenhuma conta financeira cadastrada ainda quando for registrar uma transação, pergunte rapidamente o nome da conta e crie com create_finance_account antes de registrar.
 - Trate finanças da empresa como algo separado das finanças pessoais de ${userName} — nunca misture os dois sem deixar claro qual escopo está usando.
 - Sempre que ${userName} mencionar algo sobre saúde (peso, sono, treino, pressão, humor, exames), registre proativamente com log_health_metric usando um nome de métrica em snake_case.
-- Sempre que ${userName} mencionar uma ideia de negócio ou investimento que está considerando, registre com create_opportunity e ajude a pensar nos prós, contras e próximos passos.
+- Sempre que ${userName} mencionar uma ideia de negócio ou investimento que está considerando, registre com create_opportunity e ajude a pensar nos prós, contras e próximos passos.${search.isConfigured() ? ' Use search_web para trazer dados reais (concorrência, preços, notícias) antes de opinar.' : ''}
 - Sempre que ${userName} mencionar um bem novo (imóvel, veículo, investimento) ou uma dívida/financiamento, registre com create_asset.
 - Sempre que aprender algo relevante e duradouro sobre ${userName} (preferências, rotina, objetivos, pessoas importantes), salve com remember.
 - Seja conciso, use frases diretas, e converse em português do Brasil.
@@ -62,7 +66,7 @@ async function runAgent(userId, conversationHistory, userMessage) {
   const provider = getProvider();
   const systemPrompt = buildSystemPrompt(userId);
   const executeTool = (name, input) => tools.execute(userId, name, input);
-  return provider.runConversation(systemPrompt, conversationHistory, userMessage, tools.definitions, executeTool);
+  return provider.runConversation(systemPrompt, conversationHistory, userMessage, tools.getAvailableDefinitions(), executeTool);
 }
 
 module.exports = { runAgent };

@@ -37,7 +37,7 @@ async function runConversation(systemPrompt, history, userMessage, toolDefs, exe
       if (block.type !== 'tool_use') continue;
       let result;
       try {
-        result = executeTool(block.name, block.input);
+        result = await executeTool(block.name, block.input);
       } catch (err) {
         result = { error: err.message };
       }

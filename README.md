@@ -142,10 +142,23 @@ no `.env` para outro — o resto da plataforma continua igual.
 - O agente registra e ajuda a triar oportunidades pelo chat, dando sua
   análise (prós, contras, riscos) com base no raciocínio dele e no que você
   contar na conversa.
-- **Limitação importante e intencional**: o agente **não tem busca na web
-  nem dados de mercado em tempo real** nesta fase — ele não pesquisa preços,
-  cotações ou notícias atuais. Ele deixa isso claro nas respostas. Ver
-  [Roadmap](#roadmap) para como evoluir isso.
+- **Sem `TAVILY_API_KEY` configurada**: o agente avisa que não tem busca na
+  web nem dados de mercado em tempo real, e nunca finge ter pesquisado algo.
+- **Com `TAVILY_API_KEY` configurada** (Fase 4, ver abaixo): o agente
+  pesquisa de verdade antes de opinar — preços, concorrência, notícias — e
+  cita as fontes na resposta.
+
+## O que já funciona (Fase 4 — busca real na web, opcional)
+
+- Nova ferramenta `search_web`, só oferecida ao agente quando `TAVILY_API_KEY`
+  está definida no `.env` — sem a chave, o comportamento continua o da Fase 2e
+  (análise só por raciocínio, sem fingir ter pesquisado).
+- Usa a [Tavily](https://tavily.com), uma API de busca feita para agentes de
+  IA: 1000 créditos/mês grátis, **sem pedir cartão de crédito** (ao contrário
+  da Brave Search, que passou a exigir cartão em 2026).
+- Para ativar: crie uma conta grátis em https://tavily.com, gere uma API key,
+  e coloque em `TAVILY_API_KEY` no `.env`. Não precisa reiniciar mais nada
+  além do servidor.
 
 ## Roadmap
 
@@ -157,15 +170,12 @@ implementados, plugados no mesmo núcleo (agente + memória + rotina):
 - [x] **Patrimônio**: ativos, passivos, patrimônio líquido e evolução no tempo.
 - [x] **Financeiro da empresa**: contas, receitas/despesas e resumo, isolado do pessoal.
 - [x] **Saúde pessoal**: métricas livres (peso, sono, treino, pressão...) e tendência.
-- [x] **Oportunidades de negócio/investimento**: registro, triagem e análise por
-      raciocínio do agente (sem busca real na web ainda).
+- [x] **Oportunidades de negócio/investimento**: registro, triagem, análise por
+      raciocínio do agente, e busca real na web opcional via Tavily (Fase 4).
 
 Próximas evoluções sugeridas (nenhuma delas obrigatória, mas onde investir se
 quiser ir além):
 
-- **Busca real na web para oportunidades**: plugar uma API de busca (ex: Brave
-  Search, SerpAPI) como nova ferramenta do agente, para pesquisar preços,
-  concorrência e notícias de verdade antes de opinar.
 - **Import automático de extrato bancário** (Open Finance/Pluggy, ou upload de
   CSV) em vez de lançar transações manualmente.
 - **Notificações push** no celular para lembretes e o resumo matinal, em vez
@@ -199,6 +209,7 @@ server/
     patrimonio.js                    # ativos, passivos, patrimônio líquido, histórico
     health.js                          # métricas de saúde, últimas leituras, tendência
     opportunities.js                     # board de oportunidades de negócio/investimento
+    search.js                              # busca na web via Tavily (opcional)
 public/
   index.html, app.js, styles.css   # frontend (chat + rotina + finanças + empresa +
                                     # patrimônio + saúde + oportunidades)

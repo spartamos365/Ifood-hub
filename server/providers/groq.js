@@ -50,7 +50,7 @@ async function runConversation(systemPrompt, history, userMessage, toolDefs, exe
       }
       let result;
       try {
-        result = executeTool(call.function.name, args);
+        result = await executeTool(call.function.name, args);
       } catch (err) {
         result = { error: err.message };
       }

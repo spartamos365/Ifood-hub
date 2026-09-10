@@ -4,11 +4,13 @@ const finance = require('./finance');
 const patrimonio = require('./patrimonio');
 const health = require('./health');
 const opportunities = require('./opportunities');
+const search = require('./search');
 
 // Ferramentas que o agente pode chamar para agir de verdade (nao so conversar).
 // Fase 1: rotina/tarefas + memoria de longo prazo. Fase 2a: financas pessoais
 // e da empresa. Fase 2b: patrimonio. Fase 2c: saude. Fase 2d: oportunidades
-// de negocio/investimento (triagem + analise por raciocinio, sem busca web).
+// de negocio/investimento. Fase 4: busca real na web (Tavily), so oferecida
+// ao agente se TAVILY_API_KEY estiver configurada (ver agent.js).
 
 const definitions = [
   {
@@ -237,9 +239,22 @@ const definitions = [
       required: ['id'],
     },
   },
+
+  // ─── Busca na web (Fase 4, opcional) ───────────────────────────────────
+  {
+    name: 'search_web',
+    description: 'Busca na internet por informações atuais: preços, concorrência, notícias, dados de mercado. Use antes de opinar sobre uma oportunidade de negócio/investimento que dependa de dados reais.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'O que pesquisar' },
+      },
+      required: ['query'],
+    },
+  },
 ];
 
-function execute(userId, name, input) {
+async function execute(userId, name, input) {
   switch (name) {
     case 'create_task': {
       // Alguns modelos chamam a mesma ferramenta duas vezes na mesma resposta
@@ -414,9 +429,23 @@ function execute(userId, name, input) {
       return result;
     }
 
+    case 'search_web': {
+      try {
+        return await search.search(input.query);
+      } catch (err) {
+        return { error: err.message };
+      }
+    }
+
     default:
       return { error: `Ferramenta desconhecida: ${name}` };
   }
 }
 
-module.exports = { definitions, execute };
+// Lista de ferramentas a oferecer ao agente, removendo search_web quando a
+// busca na web não está configurada (evita o modelo tentar usá-la à toa).
+function getAvailableDefinitions() {
+  return search.isConfigured() ? definitions : definitions.filter(d => d.name !== 'search_web');
+}
+
+module.exports = { definitions, getAvailableDefinitions, execute };
