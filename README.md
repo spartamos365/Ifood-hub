@@ -95,6 +95,13 @@ O celular precisa estar na **mesma rede Wi-Fi** que o PC (ou usar uma VPN tipo
 - O agente também opera nos dois escopos pelo chat, e pergunta antes de
   registrar algo se não estiver claro se é pessoal ou da empresa.
 
+## O que já funciona (Fase 2d — saúde pessoal)
+
+- Registro livre de métricas de saúde (peso, sono, treino, pressão, humor,
+  ou qualquer nome que você quiser usar), pelo painel ou pelo chat.
+- Painel com a última leitura de cada métrica e um gráfico de tendência
+  para a métrica selecionada.
+
 ## Roadmap
 
 A plataforma foi desenhada para crescer em módulos, todos plugados no mesmo
@@ -106,7 +113,7 @@ ferramentas do agente:
 - [x] **Finanças pessoais**: contas, gastos, receitas, resumo por categoria.
 - [x] **Patrimônio**: ativos, passivos, patrimônio líquido e evolução no tempo.
 - [x] **Financeiro da empresa**: contas, receitas/despesas e resumo, isolado do pessoal.
-- [ ] **Saúde pessoal**: hábitos, exames, métricas (sono, peso, treino), lembretes.
+- [x] **Saúde pessoal**: métricas livres (peso, sono, treino, pressão...) e tendência.
 - [ ] **Busca de negócios/investimentos**: pesquisa e triagem de oportunidades,
       com o agente trazendo análises e recomendações.
 
@@ -132,6 +139,7 @@ server/
                                     # montada duas vezes: /api/finance (pessoal) e
                                     # /api/company/finance (empresa)
     patrimonio.js                    # ativos, passivos, patrimônio líquido, histórico
+    health.js                          # métricas de saúde, últimas leituras, tendência
 public/
-  index.html, app.js, styles.css   # frontend (chat + rotina + finanças + empresa + patrimônio)
+  index.html, app.js, styles.css   # frontend (chat + rotina + finanças + empresa + patrimônio + saúde)
 ```

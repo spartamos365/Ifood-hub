@@ -27,6 +27,7 @@
         <button class="tab-btn" data-tab="finance">Finanças</button>
         <button class="tab-btn" data-tab="company">Empresa</button>
         <button class="tab-btn" data-tab="patrimonio">Patrimônio</button>
+        <button class="tab-btn" data-tab="health">Saúde</button>
       </nav>
       <button id="logout-btn" class="ghost-btn">Sair</button>
     </header>
@@ -211,6 +212,38 @@
           <button type="submit">Adicionar</button>
         </form>
       </section>
+    </main>
+
+    <main id="tab-health" class="tab-panel hidden">
+      <section>
+        <div class="section-header">
+          <h2>Últimas leituras</h2>
+        </div>
+        <ul id="metric-list" class="account-list"></ul>
+      </section>
+
+      <section>
+        <div class="section-header">
+          <h2>Tendência</h2>
+        </div>
+        <select id="metric-select"></select>
+        <svg id="metric-chart" class="networth-chart" viewBox="0 0 300 80" preserveAspectRatio="none"></svg>
+      </section>
+
+      <form id="metric-form" class="inline-form">
+        <input id="metric-name" type="text" list="metric-suggestions" placeholder="Métrica (ex: peso)" required />
+        <datalist id="metric-suggestions">
+          <option value="peso"></option>
+          <option value="sono_horas"></option>
+          <option value="treino_min"></option>
+          <option value="pressao_sistolica"></option>
+          <option value="pressao_diastolica"></option>
+          <option value="humor"></option>
+        </datalist>
+        <input id="metric-value" type="number" step="0.01" placeholder="Valor" required />
+        <input id="metric-note" type="text" placeholder="Observação (opcional)" />
+        <button type="submit">Registrar</button>
+      </form>
     </main>
   </div>
 

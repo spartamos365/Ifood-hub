@@ -17,6 +17,7 @@ const els = {
   tabFinance: document.getElementById('tab-finance'),
   tabCompany: document.getElementById('tab-company'),
   tabPatrimonio: document.getElementById('tab-patrimonio'),
+  tabHealth: document.getElementById('tab-health'),
   messages: document.getElementById('messages'),
   chatForm: document.getElementById('chat-form'),
   chatText: document.getElementById('chat-text'),
@@ -66,6 +67,13 @@ const els = {
   assetKind: document.getElementById('asset-kind'),
   assetType: document.getElementById('asset-type'),
   assetValue: document.getElementById('asset-value'),
+  metricList: document.getElementById('metric-list'),
+  metricSelect: document.getElementById('metric-select'),
+  metricChart: document.getElementById('metric-chart'),
+  metricForm: document.getElementById('metric-form'),
+  metricName: document.getElementById('metric-name'),
+  metricValue: document.getElementById('metric-value'),
+  metricNote: document.getElementById('metric-note'),
 };
 
 function api(path, options = {}) {
@@ -130,10 +138,12 @@ els.tabBtns.forEach((btn) => {
     els.tabFinance.classList.toggle('hidden', tab !== 'finance');
     els.tabCompany.classList.toggle('hidden', tab !== 'company');
     els.tabPatrimonio.classList.toggle('hidden', tab !== 'patrimonio');
+    els.tabHealth.classList.toggle('hidden', tab !== 'health');
     if (tab === 'routine') loadRoutine();
     if (tab === 'finance') personalFinancePanel.load();
     if (tab === 'company') companyFinancePanel.load();
     if (tab === 'patrimonio') loadPatrimonio();
+    if (tab === 'health') loadHealth();
   });
 });
 
@@ -438,7 +448,7 @@ async function loadPatrimonio() {
     els.statLiabilities.textContent = formatCurrency(netWorth.liabilities);
 
     renderAssets(assets.assets);
-    renderNetWorthChart(history.history);
+    renderSparkline(els.networthChart, history.history, 'total');
   } catch (err) {
     els.statNetworth.textContent = `Erro: ${err.message}`;
   }
@@ -462,25 +472,25 @@ function renderAssets(assets) {
   });
 }
 
-function renderNetWorthChart(history) {
-  const svg = els.networthChart;
+// Sparkline genérico em SVG, reaproveitado pelo gráfico de patrimônio e pelo de saúde.
+function renderSparkline(svg, points, valueKey) {
   svg.innerHTML = '';
-  if (history.length < 2) return;
+  if (points.length < 2) return;
 
-  const values = history.map((h) => h.total);
+  const values = points.map((p) => p[valueKey]);
   const min = Math.min(...values);
   const max = Math.max(...values);
   const range = max - min || 1;
   const w = 300, h = 80, pad = 6;
 
-  const points = history.map((pt, i) => {
-    const x = (i / (history.length - 1)) * (w - pad * 2) + pad;
-    const y = h - pad - ((pt.total - min) / range) * (h - pad * 2);
+  const coords = points.map((pt, i) => {
+    const x = (i / (points.length - 1)) * (w - pad * 2) + pad;
+    const y = h - pad - ((pt[valueKey] - min) / range) * (h - pad * 2);
     return `${x},${y}`;
   }).join(' ');
 
   const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-  polyline.setAttribute('points', points);
+  polyline.setAttribute('points', coords);
   polyline.setAttribute('fill', 'none');
   polyline.setAttribute('stroke-width', '2');
   polyline.setAttribute('style', 'stroke: var(--accent)');
@@ -504,6 +514,76 @@ els.assetForm.addEventListener('submit', async (e) => {
   els.assetType.value = '';
   els.assetValue.value = '';
   loadPatrimonio();
+});
+
+// ─── Saúde ─────────────────────────────────────────────────────────
+async function loadHealth() {
+  try {
+    const { metrics } = await api('/api/health/metrics');
+    renderMetrics(metrics);
+    renderMetricSelect(metrics);
+    await loadMetricChart();
+  } catch (err) {
+    els.metricList.innerHTML = `<li class="task-empty">Erro: ${err.message}</li>`;
+  }
+}
+
+function renderMetrics(metrics) {
+  els.metricList.innerHTML = '';
+  if (!metrics.length) {
+    els.metricList.innerHTML = '<li class="task-empty">Nenhuma métrica registrada ainda.</li>';
+    return;
+  }
+  metrics.forEach((m) => {
+    const li = document.createElement('li');
+    li.className = 'account-item';
+    li.innerHTML = `<span>${m.metric}${m.note ? ` <span class="tx-meta">(${m.note})</span>` : ''}</span>`;
+    const value = document.createElement('span');
+    value.className = 'tx-meta';
+    value.textContent = `${m.value} · ${new Date(m.logged_at).toLocaleDateString('pt-BR')}`;
+    li.appendChild(value);
+    els.metricList.appendChild(li);
+  });
+}
+
+function renderMetricSelect(metrics) {
+  const previous = els.metricSelect.value;
+  els.metricSelect.innerHTML = '';
+  metrics.forEach((m) => {
+    const option = document.createElement('option');
+    option.value = m.metric;
+    option.textContent = m.metric;
+    els.metricSelect.appendChild(option);
+  });
+  if (metrics.some((m) => m.metric === previous)) els.metricSelect.value = previous;
+}
+
+async function loadMetricChart() {
+  const metric = els.metricSelect.value;
+  if (!metric) {
+    els.metricChart.innerHTML = '';
+    return;
+  }
+  const { history } = await api(`/api/health/history?metric=${encodeURIComponent(metric)}&days=90`);
+  renderSparkline(els.metricChart, history, 'value');
+}
+
+els.metricSelect.addEventListener('change', loadMetricChart);
+
+els.metricForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const metric = els.metricName.value.trim();
+  if (!metric) return;
+  await api('/api/health/logs', {
+    method: 'POST',
+    body: JSON.stringify({
+      metric, value: Number(els.metricValue.value), note: els.metricNote.value.trim() || undefined,
+    }),
+  });
+  els.metricName.value = '';
+  els.metricValue.value = '';
+  els.metricNote.value = '';
+  loadHealth();
 });
 
 // ─── Boot ──────────────────────────────────────────────────────────

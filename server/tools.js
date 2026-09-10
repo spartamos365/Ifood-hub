@@ -2,11 +2,12 @@ const { v4: uuidv4 } = require('uuid');
 const db = require('./db');
 const finance = require('./finance');
 const patrimonio = require('./patrimonio');
+const health = require('./health');
 
 // Ferramentas que o agente pode chamar para agir de verdade (nao so conversar).
-// Fase 1: rotina/tarefas + memoria de longo prazo. Fase 2a: financas pessoais.
-// Fase 2b: patrimonio. Saude e busca de negocios entram em fases seguintes,
-// plugando novas ferramentas aqui.
+// Fase 1: rotina/tarefas + memoria de longo prazo. Fase 2a: financas pessoais
+// e da empresa. Fase 2b: patrimonio. Fase 2c: saude. Busca de negocios entra
+// em fase seguinte, plugando novas ferramentas aqui.
 
 const definitions = [
   {
@@ -161,6 +162,39 @@ const definitions = [
     description: 'Calcula o patrimônio líquido atual: saldo das contas + ativos - passivos.',
     input_schema: { type: 'object', properties: {} },
   },
+
+  // ─── Saúde pessoal (Fase 2d) ──────────────────────────────────────────
+  {
+    name: 'log_health_metric',
+    description: 'Registra uma métrica de saúde do usuário, ex: peso, horas de sono, minutos de treino, pressão arterial, humor.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        metric: { type: 'string', description: 'Nome da métrica em snake_case, ex: peso, sono_horas, treino_min, pressao_sistolica, humor' },
+        value: { type: 'number', description: 'Valor numérico da métrica' },
+        note: { type: 'string', description: 'Observação opcional' },
+        logged_at: { type: 'string', description: 'Data/hora em ISO 8601, se não for agora' },
+      },
+      required: ['metric', 'value'],
+    },
+  },
+  {
+    name: 'list_health_metrics',
+    description: 'Lista a última leitura registrada de cada métrica de saúde do usuário.',
+    input_schema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'get_health_history',
+    description: 'Retorna o histórico de uma métrica de saúde específica ao longo do tempo, para ver tendência.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        metric: { type: 'string' },
+        days: { type: 'number', description: 'Quantos dias para trás, padrão 90' },
+      },
+      required: ['metric'],
+    },
+  },
 ];
 
 function execute(userId, name, input) {
@@ -284,6 +318,24 @@ function execute(userId, name, input) {
 
     case 'get_net_worth': {
       return patrimonio.computeNetWorth(userId);
+    }
+
+    case 'log_health_metric': {
+      try {
+        return health.logMetric(userId, {
+          metric: input.metric, value: input.value, note: input.note, logged_at: input.logged_at,
+        });
+      } catch (err) {
+        return { error: err.message };
+      }
+    }
+
+    case 'list_health_metrics': {
+      return health.listMetrics(userId);
+    }
+
+    case 'get_health_history': {
+      return health.history(userId, input.metric, { days: input.days || 90 });
     }
 
     default:
