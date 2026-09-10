@@ -11,6 +11,16 @@ function listAccounts(userId, scope = 'pessoal') {
 
 function createAccount(userId, { name, type, initial_balance, scope = 'pessoal' }) {
   if (!name || !name.trim()) throw new Error('Nome da conta é obrigatório');
+
+  // Evita duplicar a conta se o agente chamar a ferramenta duas vezes seguidas
+  // para o mesmo pedido (observado acontecer com alguns modelos).
+  const dup = db.prepare(`
+    SELECT * FROM finance_accounts
+    WHERE user_id = ? AND scope = ? AND name = ? AND created_at >= datetime('now', '-2 minutes')
+    ORDER BY created_at DESC LIMIT 1
+  `).get(userId, scope, name);
+  if (dup) return dup;
+
   const id = uuidv4();
   db.prepare(`
     INSERT INTO finance_accounts (id, user_id, scope, name, type, balance)
@@ -51,6 +61,16 @@ function addTransaction(userId, { account_id, description, amount, category, occ
   if (typeof amount !== 'number' || Number.isNaN(amount) || amount === 0) {
     throw new Error('Valor inválido (use positivo para entrada, negativo para saída)');
   }
+
+  // Evita registrar (e contabilizar no saldo) a mesma transação duas vezes se o
+  // agente chamar a ferramenta duplicada para o mesmo pedido do usuário.
+  const dup = db.prepare(`
+    SELECT * FROM finance_transactions
+    WHERE account_id = ? AND description = ? AND amount = ? AND category = ?
+      AND occurred_at >= datetime('now', '-2 minutes')
+    ORDER BY occurred_at DESC LIMIT 1
+  `).get(account_id, description, amount, category || 'outros');
+  if (dup) return dup;
 
   const id = uuidv4();
   db.prepare(`

@@ -242,6 +242,17 @@ const definitions = [
 function execute(userId, name, input) {
   switch (name) {
     case 'create_task': {
+      // Alguns modelos chamam a mesma ferramenta duas vezes na mesma resposta
+      // (observado com Gemini). Evita duplicar a tarefa se uma idêntica acabou
+      // de ser criada agora mesmo.
+      const dup = db.prepare(`
+        SELECT id FROM tasks
+        WHERE user_id = ? AND title = ? AND due_at IS ? AND status = 'pendente'
+          AND created_at >= datetime('now', '-2 minutes')
+        ORDER BY created_at DESC LIMIT 1
+      `).get(userId, input.title, input.due_at || null);
+      if (dup) return { id: dup.id, status: 'já existia (duplicata evitada)' };
+
       const id = uuidv4();
       db.prepare(`
         INSERT INTO tasks (id, user_id, title, description, category, priority, due_at, recurring_rule)

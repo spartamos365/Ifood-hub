@@ -7,6 +7,17 @@ const db = require('./db');
 
 function logMetric(userId, { metric, value, note, logged_at }) {
   if (!metric || !metric.trim()) throw new Error('Métrica é obrigatória');
+
+  // Evita duplicar o registro se o agente chamar a ferramenta duas vezes
+  // seguidas para o mesmo pedido do usuário.
+  const dup = db.prepare(`
+    SELECT * FROM health_logs
+    WHERE user_id = ? AND metric = ? AND value IS ?
+      AND logged_at >= datetime('now', '-2 minutes')
+    ORDER BY logged_at DESC LIMIT 1
+  `).get(userId, metric, value ?? null);
+  if (dup) return dup;
+
   const id = uuidv4();
   db.prepare(`
     INSERT INTO health_logs (id, user_id, metric, value, note, logged_at)

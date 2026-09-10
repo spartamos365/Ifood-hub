@@ -13,6 +13,16 @@ function list(userId, { status } = {}) {
 
 function create(userId, { title, description, category, estimated_value, next_step }) {
   if (!title || !title.trim()) throw new Error('Título é obrigatório');
+
+  // Evita duplicar a oportunidade se o agente chamar a ferramenta duas vezes
+  // seguidas para o mesmo pedido do usuário.
+  const dup = db.prepare(`
+    SELECT * FROM opportunities
+    WHERE user_id = ? AND title = ? AND created_at >= datetime('now', '-2 minutes')
+    ORDER BY created_at DESC LIMIT 1
+  `).get(userId, title);
+  if (dup) return dup;
+
   const id = uuidv4();
   db.prepare(`
     INSERT INTO opportunities (id, user_id, title, description, category, estimated_value, next_step)

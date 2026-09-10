@@ -5,7 +5,7 @@ const { GoogleGenAI } = require('@google/genai');
 // Anthropic e do estilo OpenAI usado pelo Groq.
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-const MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+const MODEL = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
 const MAX_TOOL_ROUNDS = 6;
 
 function toGeminiTools(toolDefs) {
@@ -43,10 +43,11 @@ async function runConversation(systemPrompt, history, userMessage, toolDefs, exe
       return response.text || '';
     }
 
-    contents.push({
-      role: 'model',
-      parts: calls.map(c => ({ functionCall: { name: c.name, args: c.args } })),
-    });
+    // Reenvia as partes originais da resposta do modelo (não reconstruídas),
+    // porque cada parte de function call carrega um "thoughtSignature" que a
+    // API exige de volta para o tool calling funcionar corretamente.
+    const modelParts = response.candidates[0].content.parts;
+    contents.push({ role: 'model', parts: modelParts });
 
     contents.push({
       role: 'user',

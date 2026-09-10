@@ -11,6 +11,16 @@ function listAssets(userId) {
 function createAsset(userId, { name, type, kind, value }) {
   if (!name || !name.trim()) throw new Error('Nome do ativo/passivo é obrigatório');
   const resolvedKind = kind === 'passivo' ? 'passivo' : 'ativo';
+
+  // Evita duplicar o ativo/passivo se o agente chamar a ferramenta duas vezes
+  // seguidas para o mesmo pedido do usuário.
+  const dup = db.prepare(`
+    SELECT * FROM assets
+    WHERE user_id = ? AND name = ? AND kind = ? AND updated_at >= datetime('now', '-2 minutes')
+    ORDER BY updated_at DESC LIMIT 1
+  `).get(userId, name, resolvedKind);
+  if (dup) return dup;
+
   const id = uuidv4();
   db.prepare(`
     INSERT INTO assets (id, user_id, name, type, kind, value)
