@@ -26,6 +26,12 @@ para o que pode evoluir a partir daqui.
 
 ## Como rodar
 
+Precisa de **Node.js 22.13 ou mais novo** (baixe em https://nodejs.org, versão
+"LTS"). Usamos o SQLite embutido no próprio Node (`node:sqlite`), então não
+tem módulo nativo pra compilar — em versões mais antigas do Node isso não
+existe, e em versões muito novas pode aparecer como "experimental" nos logs
+(normal, não é erro).
+
 1. Instale as dependências:
    ```bash
    npm install

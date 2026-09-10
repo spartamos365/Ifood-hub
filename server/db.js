@@ -1,13 +1,17 @@
 const path = require('path');
 const fs = require('fs');
-const Database = require('better-sqlite3');
+const { DatabaseSync } = require('node:sqlite');
+
+// SQLite embutido no próprio Node (desde a v22.13, sem flag) — evita depender
+// de compilar um módulo nativo (better-sqlite3), que exige Visual Studio no
+// Windows e trava a instalação em máquinas sem ferramentas de build.
 
 const dataDir = path.join(__dirname, '..', 'data');
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
-const db = new Database(path.join(dataDir, 'assistant.db'));
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
+const db = new DatabaseSync(path.join(dataDir, 'assistant.db'));
+db.exec('PRAGMA journal_mode = WAL');
+db.exec('PRAGMA foreign_keys = ON');
 
 // ─── Núcleo: usuário, conversas, memória, rotina ──────────────────────────
 db.exec(`
