@@ -119,6 +119,30 @@ button:active { transform: scale(0.98); }
 .chat-input { display: flex; gap: 8px; position: sticky; bottom: 0; padding-top: 8px; background: var(--bg); }
 .chat-input input { flex: 1; }
 
+.voice-btn {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0;
+}
+.voice-btn.listening {
+  background: var(--danger);
+  color: #fff;
+  border-color: var(--danger);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
 /* Routine */
 .briefing-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
 .briefing-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }

@@ -59,6 +59,23 @@ O celular precisa estar na **mesma rede Wi-Fi** que o PC (ou usar uma VPN tipo
 > Se quiser acessar de fora da sua rede local com segurança, use Tailscale (mais
 > simples e seguro que abrir portas no roteador).
 
+#### Habilitando HTTPS (necessário para o microfone funcionar pelo celular)
+
+Por padrão o acesso pelo IP da rede local é `http://`, sem HTTPS. Isso é
+suficiente pra tudo, **exceto** o botão de falar no chat: os navegadores só
+liberam o microfone em `https://` ou `localhost` — em `http://192.168.x.x`
+o botão de voz não aparece. Pra resolver, é só usar o Tailscale, que expõe
+seu servidor com HTTPS automático sem precisar mexer em nada no código:
+
+```bash
+# depois de instalar e logar no Tailscale no seu PC:
+tailscale serve --bg 3001
+```
+
+Isso publica o assistente em `https://<nome-do-seu-pc>.<sua-tailnet>.ts.net`,
+acessível de qualquer dispositivo com Tailscale instalado (inclusive o
+celular), com certificado válido e o microfone liberado.
+
 ## Motor de IA: Gemini (grátis), Groq (grátis) ou Anthropic (pago)
 
 O agente não está preso a um provedor — `server/providers/` tem uma implementação

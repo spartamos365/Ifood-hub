@@ -22,6 +22,7 @@ const els = {
   messages: document.getElementById('messages'),
   chatForm: document.getElementById('chat-form'),
   chatText: document.getElementById('chat-text'),
+  voiceBtn: document.getElementById('voice-btn'),
   briefingText: document.getElementById('briefing-text'),
   genBriefingBtn: document.getElementById('gen-briefing-btn'),
   taskList: document.getElementById('task-list'),
@@ -198,6 +199,46 @@ els.chatForm.addEventListener('submit', async (e) => {
     pendingEl.classList.remove('pending');
   }
 });
+
+// ─── Entrada por voz (opcional) ──────────────────────────────────────
+// Requer contexto seguro (HTTPS ou localhost) — o navegador bloqueia o
+// microfone em http:// simples, como quando acessado pelo IP da rede local.
+// Ver README ("Acessar pelo celular") para expor com HTTPS via Tailscale.
+(function setupVoiceInput() {
+  const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognitionCtor || !els.voiceBtn) return;
+
+  const recognition = new SpeechRecognitionCtor();
+  recognition.lang = 'pt-BR';
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+
+  let listening = false;
+
+  recognition.addEventListener('result', (e) => {
+    els.chatText.value = e.results[0][0].transcript;
+    els.chatText.focus();
+  });
+  recognition.addEventListener('end', () => {
+    listening = false;
+    els.voiceBtn.classList.remove('listening');
+  });
+  recognition.addEventListener('error', () => {
+    listening = false;
+    els.voiceBtn.classList.remove('listening');
+  });
+
+  els.voiceBtn.hidden = false;
+  els.voiceBtn.addEventListener('click', () => {
+    if (listening) {
+      recognition.stop();
+      return;
+    }
+    listening = true;
+    els.voiceBtn.classList.add('listening');
+    recognition.start();
+  });
+})();
 
 // ─── Rotina ────────────────────────────────────────────────────────
 async function loadRoutine() {
