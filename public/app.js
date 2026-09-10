@@ -15,6 +15,7 @@ const els = {
   tabChat: document.getElementById('tab-chat'),
   tabRoutine: document.getElementById('tab-routine'),
   tabFinance: document.getElementById('tab-finance'),
+  tabPatrimonio: document.getElementById('tab-patrimonio'),
   messages: document.getElementById('messages'),
   chatForm: document.getElementById('chat-form'),
   chatText: document.getElementById('chat-text'),
@@ -39,6 +40,16 @@ const els = {
   txAmount: document.getElementById('tx-amount'),
   txType: document.getElementById('tx-type'),
   txCategory: document.getElementById('tx-category'),
+  statNetworth: document.getElementById('stat-networth'),
+  statAssets: document.getElementById('stat-assets'),
+  statLiabilities: document.getElementById('stat-liabilities'),
+  networthChart: document.getElementById('networth-chart'),
+  assetList: document.getElementById('asset-list'),
+  assetForm: document.getElementById('asset-form'),
+  assetName: document.getElementById('asset-name'),
+  assetKind: document.getElementById('asset-kind'),
+  assetType: document.getElementById('asset-type'),
+  assetValue: document.getElementById('asset-value'),
 };
 
 function api(path, options = {}) {
@@ -101,8 +112,10 @@ els.tabBtns.forEach((btn) => {
     els.tabChat.classList.toggle('hidden', tab !== 'chat');
     els.tabRoutine.classList.toggle('hidden', tab !== 'routine');
     els.tabFinance.classList.toggle('hidden', tab !== 'finance');
+    els.tabPatrimonio.classList.toggle('hidden', tab !== 'patrimonio');
     if (tab === 'routine') loadRoutine();
     if (tab === 'finance') loadFinance();
+    if (tab === 'patrimonio') loadPatrimonio();
   });
 });
 
@@ -365,6 +378,87 @@ els.transactionForm.addEventListener('submit', async (e) => {
   els.txAmount.value = '';
   els.txCategory.value = '';
   loadFinance();
+});
+
+// ─── Patrimônio ────────────────────────────────────────────────────
+async function loadPatrimonio() {
+  try {
+    const [netWorth, assets, history] = await Promise.all([
+      api('/api/patrimonio/net-worth'),
+      api('/api/patrimonio/assets'),
+      api('/api/patrimonio/history?days=90'),
+    ]);
+    els.statNetworth.textContent = formatCurrency(netWorth.netWorth);
+    els.statAssets.textContent = formatCurrency(netWorth.cash + netWorth.assets);
+    els.statLiabilities.textContent = formatCurrency(netWorth.liabilities);
+
+    renderAssets(assets.assets);
+    renderNetWorthChart(history.history);
+  } catch (err) {
+    els.statNetworth.textContent = `Erro: ${err.message}`;
+  }
+}
+
+function renderAssets(assets) {
+  els.assetList.innerHTML = '';
+  if (!assets.length) {
+    els.assetList.innerHTML = '<li class="task-empty">Nenhum ativo ou passivo cadastrado ainda.</li>';
+    return;
+  }
+  assets.forEach((a) => {
+    const li = document.createElement('li');
+    li.className = 'account-item';
+    li.innerHTML = `<span>${a.name} <span class="tx-meta">(${a.type})</span></span>`;
+    const value = document.createElement('span');
+    value.className = a.kind === 'passivo' ? 'amount-negative' : 'amount-positive';
+    value.textContent = formatCurrency(a.kind === 'passivo' ? -a.value : a.value);
+    li.appendChild(value);
+    els.assetList.appendChild(li);
+  });
+}
+
+function renderNetWorthChart(history) {
+  const svg = els.networthChart;
+  svg.innerHTML = '';
+  if (history.length < 2) return;
+
+  const values = history.map((h) => h.total);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const w = 300, h = 80, pad = 6;
+
+  const points = history.map((pt, i) => {
+    const x = (i / (history.length - 1)) * (w - pad * 2) + pad;
+    const y = h - pad - ((pt.total - min) / range) * (h - pad * 2);
+    return `${x},${y}`;
+  }).join(' ');
+
+  const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+  polyline.setAttribute('points', points);
+  polyline.setAttribute('fill', 'none');
+  polyline.setAttribute('stroke-width', '2');
+  polyline.setAttribute('style', 'stroke: var(--accent)');
+  svg.appendChild(polyline);
+}
+
+els.assetForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const name = els.assetName.value.trim();
+  if (!name) return;
+  await api('/api/patrimonio/assets', {
+    method: 'POST',
+    body: JSON.stringify({
+      name,
+      kind: els.assetKind.value,
+      type: els.assetType.value.trim() || 'outro',
+      value: Math.abs(Number(els.assetValue.value)) || 0,
+    }),
+  });
+  els.assetName.value = '';
+  els.assetType.value = '';
+  els.assetValue.value = '';
+  loadPatrimonio();
 });
 
 // ─── Boot ──────────────────────────────────────────────────────────

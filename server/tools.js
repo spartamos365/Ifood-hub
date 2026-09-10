@@ -1,11 +1,12 @@
 const { v4: uuidv4 } = require('uuid');
 const db = require('./db');
 const finance = require('./finance');
+const patrimonio = require('./patrimonio');
 
 // Ferramentas que o agente pode chamar para agir de verdade (nao so conversar).
 // Fase 1: rotina/tarefas + memoria de longo prazo. Fase 2a: financas pessoais.
-// Saude, patrimonio e busca de negocios entram em fases seguintes, plugando
-// novas ferramentas aqui.
+// Fase 2b: patrimonio. Saude e busca de negocios entram em fases seguintes,
+// plugando novas ferramentas aqui.
 
 const definitions = [
   {
@@ -125,6 +126,32 @@ const definitions = [
       },
     },
   },
+
+  // ─── Patrimônio (Fase 2b) ─────────────────────────────────────────────
+  {
+    name: 'create_asset',
+    description: 'Registra um ativo (imóvel, veículo, investimento etc) ou passivo (dívida, financiamento) no patrimônio do usuário.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Nome, ex: "Apartamento", "Financiamento do carro"' },
+        type: { type: 'string', description: 'Categoria livre, ex: imóvel, veículo, investimento, dívida, financiamento' },
+        kind: { type: 'string', enum: ['ativo', 'passivo'], description: 'ativo = bem que você tem; passivo = dívida que você deve' },
+        value: { type: 'number', description: 'Valor atual, sempre positivo' },
+      },
+      required: ['name', 'kind', 'value'],
+    },
+  },
+  {
+    name: 'list_assets',
+    description: 'Lista os ativos e passivos do usuário.',
+    input_schema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'get_net_worth',
+    description: 'Calcula o patrimônio líquido atual: saldo das contas + ativos - passivos.',
+    input_schema: { type: 'object', properties: {} },
+  },
 ];
 
 function execute(userId, name, input) {
@@ -229,6 +256,22 @@ function execute(userId, name, input) {
 
     case 'get_finance_summary': {
       return finance.summary(userId, { period: input.period || 'month' });
+    }
+
+    case 'create_asset': {
+      try {
+        return patrimonio.createAsset(userId, { name: input.name, type: input.type, kind: input.kind, value: input.value });
+      } catch (err) {
+        return { error: err.message };
+      }
+    }
+
+    case 'list_assets': {
+      return patrimonio.listAssets(userId);
+    }
+
+    case 'get_net_worth': {
+      return patrimonio.computeNetWorth(userId);
     }
 
     default:

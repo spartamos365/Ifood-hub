@@ -103,13 +103,25 @@ db.exec(`
     logged_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
+  -- Patrimônio: bens/investimentos (ativo) e dívidas/financiamentos (passivo)
   CREATE TABLE IF NOT EXISTS assets (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     type TEXT NOT NULL,
+    kind TEXT NOT NULL DEFAULT 'ativo' CHECK (kind IN ('ativo','passivo')),
     value REAL NOT NULL DEFAULT 0,
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  -- Snapshot diário do patrimônio líquido, para ver a evolução no tempo
+  CREATE TABLE IF NOT EXISTS net_worth_snapshots (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    date TEXT NOT NULL,
+    total REAL NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(user_id, date)
   );
 
   CREATE TABLE IF NOT EXISTS opportunities (

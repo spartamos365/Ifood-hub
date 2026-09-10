@@ -76,6 +76,15 @@ O celular precisa estar na **mesma rede Wi-Fi** que o PC (ou usar uma VPN tipo
 - Resumo financeiro do mês: saldo total, receitas, despesas e gastos por
   categoria, visível no painel de Finanças.
 
+## O que já funciona (Fase 2b — patrimônio)
+
+- Ativos (imóveis, veículos, investimentos) e passivos (dívidas,
+  financiamentos), registrados pelo painel ou pelo chat.
+- Patrimônio líquido calculado automaticamente: saldo das contas + ativos −
+  passivos.
+- Histórico de evolução do patrimônio líquido, com um snapshot salvo por dia
+  e gráfico simples no painel de Patrimônio.
+
 ## Roadmap
 
 A plataforma foi desenhada para crescer em módulos, todos plugados no mesmo
@@ -85,9 +94,9 @@ está no `server/db.js` (tabelas `finance_accounts`, `finance_transactions`,
 ferramentas do agente:
 
 - [x] **Finanças pessoais**: contas, gastos, receitas, resumo por categoria.
+- [x] **Patrimônio**: ativos, passivos, patrimônio líquido e evolução no tempo.
 - [ ] **Financeiro da empresa**: fluxo de caixa, contas a pagar/receber, DRE simples.
 - [ ] **Saúde pessoal**: hábitos, exames, métricas (sono, peso, treino), lembretes.
-- [ ] **Patrimônio**: bens, investimentos, evolução de patrimônio líquido no tempo.
 - [ ] **Busca de negócios/investimentos**: pesquisa e triagem de oportunidades,
       com o agente trazendo análises e recomendações.
 
@@ -104,11 +113,13 @@ server/
   agent.js        # orquestração do agente Claude (system prompt + tool loop)
   tools.js         # ferramentas que o agente pode executar
   finance.js         # lógica de contas/transações/resumo (usada por rotas e agente)
-  scheduler.js          # geração do resumo matinal (cron)
+  patrimonio.js        # lógica de ativos/passivos/patrimônio líquido
+  scheduler.js            # geração do resumo matinal (cron)
   routes/
-    chat.js                # POST /api/chat
-    routine.js               # tarefas, agenda de hoje, memória
-    finance.js                 # contas, transações, resumo financeiro
+    chat.js                    # POST /api/chat
+    routine.js                   # tarefas, agenda de hoje, memória
+    finance.js                     # contas, transações, resumo financeiro
+    patrimonio.js                    # ativos, passivos, patrimônio líquido, histórico
 public/
-  index.html, app.js, styles.css   # frontend (chat + rotina + finanças)
+  index.html, app.js, styles.css   # frontend (chat + rotina + finanças + patrimônio)
 ```
