@@ -14,8 +14,10 @@ para o que pode evoluir a partir daqui.
 - **Backend**: Node.js + Express, rodando localmente no seu PC.
 - **Banco de dados**: SQLite (arquivo local em `data/assistant.db`), sem precisar
   instalar nada além do Node.
-- **Agente de IA**: API da Anthropic (Claude), com *tool calling* — ou seja, o
-  agente de verdade cria/consulta tarefas e salva memória, não só conversa.
+- **Agente de IA**: motor plugável, com *tool calling* — ou seja, o agente de
+  verdade cria/consulta tarefas e salva memória, não só conversa. Padrão é
+  **Groq (gratuito)**; dá pra trocar para **Anthropic/Claude (pago)** mudando
+  uma variável no `.env`. Ver [Motor de IA](#motor-de-ia-groq-gr%C3%A1tis-ou-anthropic-pago).
 - **Frontend**: página web simples (`public/`), sem build step, acessível pelo
   navegador do PC e do celular.
 - **Autenticação**: login único (uso pessoal) com email/senha definidos no `.env`,
@@ -32,7 +34,8 @@ para o que pode evoluir a partir daqui.
    cp .env.example .env
    ```
    Você vai precisar de:
-   - `ANTHROPIC_API_KEY`: gere em https://console.anthropic.com/settings/keys
+   - `GROQ_API_KEY` (padrão, gratuito): gere em https://console.groq.com/keys
+     — veja [Motor de IA](#motor-de-ia-groq-gr%C3%A1tis-ou-anthropic-pago)
    - `ASSISTANT_EMAIL` / `ASSISTANT_PASSWORD`: o login que você vai usar
    - `JWT_SECRET`: qualquer string aleatória longa
    - `USER_NAME`: seu nome, para o agente se dirigir a você
@@ -54,6 +57,26 @@ O celular precisa estar na **mesma rede Wi-Fi** que o PC (ou usar uma VPN tipo
 
 > Se quiser acessar de fora da sua rede local com segurança, use Tailscale (mais
 > simples e seguro que abrir portas no roteador).
+
+## Motor de IA: Groq (grátis) ou Anthropic (pago)
+
+O agente não está preso a um provedor — `server/providers/` tem uma implementação
+para cada um, e `AI_PROVIDER` no `.env` escolhe qual usar. As duas seguem a mesma
+interface, então trocar de provedor não muda nada no resto do código.
+
+**Groq (padrão, gratuito)**:
+1. Crie uma conta grátis em https://console.groq.com (não pede cartão de crédito).
+2. Gere uma API key em https://console.groq.com/keys.
+3. No `.env`: `AI_PROVIDER=groq` e `GROQ_API_KEY=gsk_...`.
+4. Roda o modelo Llama 3.3 70B por padrão (`GROQ_MODEL`), rápido e com suporte a
+   tool calling. Tem limite de uso gratuito generoso, mas é limite — se você bater
+   nele, a Groq retorna erro de rate limit até resetar.
+
+**Anthropic/Claude (opcional, pago)**:
+1. Precisa de créditos em https://console.anthropic.com/settings/billing.
+2. No `.env`: `AI_PROVIDER=anthropic`, `ANTHROPIC_API_KEY=sk-ant-...`.
+3. Melhor qualidade de raciocínio e mais confiável no uso das ferramentas, mas
+   cobra por uso.
 
 ## O que já funciona (Fase 1 — núcleo)
 
@@ -148,7 +171,11 @@ server/
   index.js        # entrada do servidor
   db.js           # schema SQLite
   auth.js         # login single-user + JWT
-  agent.js        # orquestração do agente Claude (system prompt + tool loop)
+  agent.js        # orquestração do agente (system prompt + delega ao provider)
+  providers/       # implementações por motor de IA, interface comum
+    index.js          # getProvider() lê AI_PROVIDER do .env
+    groq.js              # provedor gratuito (Groq, formato OpenAI-style)
+    anthropic.js           # provedor pago (Claude, formato Anthropic nativo)
   tools.js         # ferramentas que o agente pode executar
   finance.js         # lógica de contas/transações/resumo (usada por rotas e agente)
   patrimonio.js        # lógica de ativos/passivos/patrimônio líquido

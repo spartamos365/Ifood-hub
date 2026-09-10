@@ -1,10 +1,7 @@
 const cron = require('node-cron');
 const { v4: uuidv4 } = require('uuid');
-const Anthropic = require('@anthropic-ai/sdk');
 const db = require('./db');
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-5';
+const { getProvider } = require('./providers');
 
 async function generateBriefing(userId) {
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -26,13 +23,7 @@ async function generateBriefing(userId) {
 
   const prompt = `Gere um resumo matinal curto e direto para ${userName}, em português do Brasil, com base nas tarefas de hoje abaixo. Organize por prioridade, sugira uma ordem de execução, e feche com uma frase objetiva de incentivo. No máximo 150 palavras.\n\nTarefas de hoje:\n${taskList}`;
 
-  const response = await anthropic.messages.create({
-    model: MODEL,
-    max_tokens: 500,
-    messages: [{ role: 'user', content: prompt }],
-  });
-
-  const text = response.content.find(b => b.type === 'text')?.text || '';
+  const text = await getProvider().complete(prompt, { maxTokens: 500 });
   db.prepare('INSERT INTO briefings (id, user_id, date, content) VALUES (?, ?, ?, ?)')
     .run(uuidv4(), userId, todayStr, text);
 }

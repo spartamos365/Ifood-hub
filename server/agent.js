@@ -1,10 +1,6 @@
-const Anthropic = require('@anthropic-ai/sdk');
 const db = require('./db');
 const tools = require('./tools');
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-5';
-const MAX_TOOL_ROUNDS = 6;
+const { getProvider } = require('./providers');
 
 function buildSystemPrompt(userId) {
   const userName = process.env.USER_NAME || 'você';
@@ -63,49 +59,10 @@ Diretrizes:
 }
 
 async function runAgent(userId, conversationHistory, userMessage) {
-  const messages = [
-    ...conversationHistory.map(m => ({ role: m.role, content: m.content })),
-    { role: 'user', content: userMessage },
-  ];
-
-  let rounds = 0;
-  while (rounds < MAX_TOOL_ROUNDS) {
-    rounds += 1;
-
-    const response = await anthropic.messages.create({
-      model: MODEL,
-      max_tokens: 2048,
-      system: buildSystemPrompt(userId),
-      tools: tools.definitions,
-      messages,
-    });
-
-    if (response.stop_reason !== 'tool_use') {
-      const textBlock = response.content.find(b => b.type === 'text');
-      return textBlock ? textBlock.text : '';
-    }
-
-    messages.push({ role: 'assistant', content: response.content });
-
-    const toolResults = [];
-    for (const block of response.content) {
-      if (block.type !== 'tool_use') continue;
-      let result;
-      try {
-        result = tools.execute(userId, block.name, block.input);
-      } catch (err) {
-        result = { error: err.message };
-      }
-      toolResults.push({
-        type: 'tool_result',
-        tool_use_id: block.id,
-        content: JSON.stringify(result),
-      });
-    }
-    messages.push({ role: 'user', content: toolResults });
-  }
-
-  return 'Desculpa, precisei de passos demais para responder isso — pode reformular ou dividir o pedido?';
+  const provider = getProvider();
+  const systemPrompt = buildSystemPrompt(userId);
+  const executeTool = (name, input) => tools.execute(userId, name, input);
+  return provider.runConversation(systemPrompt, conversationHistory, userMessage, tools.definitions, executeTool);
 }
 
 module.exports = { runAgent };

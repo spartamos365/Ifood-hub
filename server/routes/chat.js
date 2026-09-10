@@ -70,7 +70,7 @@ router.post('/', async (req, res) => {
     res.json({ conversationId: conversation.id, reply, timestamp: now });
   } catch (err) {
     req.log.error('Erro no chat: ' + err.message);
-    res.status(500).json({ error: 'Falha ao falar com o assistente. Verifique a ANTHROPIC_API_KEY no .env.' });
+    res.status(500).json({ error: 'Falha ao falar com o assistente. Verifique a chave de API do provedor configurado (AI_PROVIDER) no .env.' });
   }
 });
 

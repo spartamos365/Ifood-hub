@@ -21,7 +21,10 @@ const logger = winston.createLogger({
   transports: [new winston.transports.Console()],
 });
 
-const requiredEnv = ['ANTHROPIC_API_KEY', 'ASSISTANT_EMAIL', 'ASSISTANT_PASSWORD', 'JWT_SECRET'];
+const aiProvider = (process.env.AI_PROVIDER || 'groq').toLowerCase();
+const providerKeyVar = aiProvider === 'anthropic' ? 'ANTHROPIC_API_KEY' : 'GROQ_API_KEY';
+
+const requiredEnv = [providerKeyVar, 'ASSISTANT_EMAIL', 'ASSISTANT_PASSWORD', 'JWT_SECRET'];
 const missing = requiredEnv.filter(k => !process.env[k]);
 if (missing.length) {
   console.error(`Faltam variáveis no .env: ${missing.join(', ')}. Copie .env.example para .env e preencha.`);
