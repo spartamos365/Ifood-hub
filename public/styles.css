@@ -16,7 +16,9 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: var(--bg);
+  background:
+    radial-gradient(ellipse 900px 500px at 50% -10%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%),
+    var(--bg);
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
@@ -38,7 +40,17 @@ body {
   flex-direction: column;
   gap: 12px;
 }
-.login-card h1 { margin: 0; font-size: 1.4rem; }
+.login-card {
+  box-shadow: 0 0 40px -12px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+.login-card h1 {
+  margin: 0;
+  font-size: 1.4rem;
+  background: linear-gradient(135deg, var(--text), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
 .subtitle { margin: 0 0 8px; color: var(--muted); font-size: 0.9rem; }
 input {
   background: var(--surface-2);
@@ -58,8 +70,11 @@ button {
   font-weight: 600;
   background: var(--accent);
   color: #fff;
+  box-shadow: 0 0 14px -4px color-mix(in srgb, var(--accent) 70%, transparent);
+  transition: box-shadow 0.15s ease, transform 0.1s ease;
 }
 button:active { transform: scale(0.98); }
+button:hover { box-shadow: 0 0 20px -2px color-mix(in srgb, var(--accent) 80%, transparent); }
 .error { color: var(--danger); font-size: 0.85rem; min-height: 1em; margin: 0; }
 
 /* App */
@@ -82,12 +97,18 @@ button:active { transform: scale(0.98); }
   padding: 8px 14px;
   border-radius: 20px;
   font-weight: 500;
+  box-shadow: none;
 }
-.tab-btn.active { background: var(--surface-2); color: var(--text); }
+.tab-btn.active {
+  background: var(--surface-2);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 50%, transparent);
+}
 .ghost-btn {
   background: transparent;
   border: 1px solid var(--border);
   color: var(--muted);
+  box-shadow: none;
 }
 .ghost-btn.small { padding: 6px 10px; font-size: 0.8rem; }
 
@@ -101,6 +122,77 @@ button:active { transform: scale(0.98); }
   width: 100%;
   margin: 0 auto;
 }
+
+/* Orb — avatar animado do assistente */
+.orb-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 18px 0 10px;
+}
+.orb {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.orb-core {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, var(--accent-2), var(--accent) 70%);
+  box-shadow: 0 0 16px 2px color-mix(in srgb, var(--accent) 60%, transparent);
+  animation: orb-breathe 3.2s ease-in-out infinite;
+}
+.orb-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  animation: orb-spin 8s linear infinite;
+}
+.orb-ring-2 {
+  inset: 8px;
+  border-color: color-mix(in srgb, var(--accent-2) 40%, transparent);
+  animation-duration: 6s;
+  animation-direction: reverse;
+}
+@keyframes orb-breathe {
+  0%, 100% { transform: scale(1); opacity: 0.9; }
+  50% { transform: scale(1.12); opacity: 1; }
+}
+@keyframes orb-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.orb.listening .orb-core {
+  background: radial-gradient(circle at 35% 35%, #fff, var(--danger) 70%);
+  box-shadow: 0 0 22px 4px color-mix(in srgb, var(--danger) 70%, transparent);
+  animation: orb-pulse-fast 0.8s ease-in-out infinite;
+}
+.orb.listening .orb-ring { border-color: color-mix(in srgb, var(--danger) 60%, transparent); animation-duration: 2s; }
+
+.orb.thinking .orb-core { animation: orb-pulse-fast 1s ease-in-out infinite; }
+.orb.thinking .orb-ring { animation-duration: 1.5s; }
+
+.orb.speaking .orb-core {
+  background: radial-gradient(circle at 35% 35%, #fff, var(--accent-2) 70%);
+  box-shadow: 0 0 24px 5px color-mix(in srgb, var(--accent-2) 70%, transparent);
+  animation: orb-pulse-fast 0.5s ease-in-out infinite;
+}
+.orb.speaking .orb-ring { animation-duration: 1.2s; }
+
+@keyframes orb-pulse-fast {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.22); }
+}
+
+.mute-btn.muted { color: var(--danger); border-color: var(--danger); }
+.mute-btn #mute-waves[data-muted="true"] { display: none; }
 
 /* Chat */
 .messages {
@@ -131,6 +223,7 @@ button:active { transform: scale(0.98); }
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  box-shadow: none;
   padding: 0;
 }
 .voice-btn.listening {

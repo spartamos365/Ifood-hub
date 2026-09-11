@@ -23,6 +23,8 @@ const els = {
   chatForm: document.getElementById('chat-form'),
   chatText: document.getElementById('chat-text'),
   voiceBtn: document.getElementById('voice-btn'),
+  orb: document.getElementById('orb'),
+  muteBtn: document.getElementById('mute-btn'),
   attachBtn: document.getElementById('attach-btn'),
   chatImageInput: document.getElementById('chat-image-input'),
   imagePreview: document.getElementById('image-preview'),
@@ -273,6 +275,7 @@ els.chatForm.addEventListener('submit', async (e) => {
   clearPendingImage();
   addMessage('user', text, false, imageDataUrl);
   const pendingEl = addMessage('assistant', 'Pensando...', true);
+  setOrbState('thinking');
 
   try {
     const data = await api('/api/chat', {
@@ -283,9 +286,11 @@ els.chatForm.addEventListener('submit', async (e) => {
     localStorage.setItem('conversationId', state.conversationId);
     pendingEl.textContent = data.reply;
     pendingEl.classList.remove('pending');
+    voiceOutput.speak(data.reply);
   } catch (err) {
     pendingEl.textContent = `Erro: ${err.message}`;
     pendingEl.classList.remove('pending');
+    setOrbState('idle');
   }
 });
 
@@ -293,6 +298,62 @@ els.chatForm.addEventListener('submit', async (e) => {
 // Requer contexto seguro (HTTPS ou localhost) — o navegador bloqueia o
 // microfone em http:// simples, como quando acessado pelo IP da rede local.
 // Ver README ("Acessar pelo celular") para expor com HTTPS via Tailscale.
+// ─── Orb (avatar animado) + saída por voz (TTS) ───────────────────────
+function setOrbState(state) {
+  if (!els.orb) return;
+  els.orb.classList.remove('idle', 'listening', 'thinking', 'speaking');
+  els.orb.classList.add(state);
+}
+
+const voiceOutput = (function setupVoiceOutput() {
+  let enabled = localStorage.getItem('speechEnabled') !== 'false';
+  let ptVoice = null;
+
+  function pickVoice() {
+    if (!window.speechSynthesis) return;
+    const voices = speechSynthesis.getVoices();
+    ptVoice = voices.find(v => v.lang === 'pt-BR') || voices.find(v => (v.lang || '').startsWith('pt')) || null;
+  }
+  if (window.speechSynthesis) {
+    pickVoice();
+    speechSynthesis.addEventListener('voiceschanged', pickVoice);
+  }
+
+  function updateButtonUI() {
+    if (!els.muteBtn) return;
+    els.muteBtn.classList.toggle('muted', !enabled);
+    const waves = document.getElementById('mute-waves');
+    const x = document.getElementById('mute-x');
+    if (waves) waves.hidden = !enabled;
+    if (x) x.hidden = enabled;
+  }
+
+  function speak(text) {
+    if (!enabled || !window.speechSynthesis || !text) return;
+    speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'pt-BR';
+    if (ptVoice) utterance.voice = ptVoice;
+    utterance.rate = 1.05;
+    utterance.onstart = () => setOrbState('speaking');
+    utterance.onend = () => setOrbState('idle');
+    utterance.onerror = () => setOrbState('idle');
+    speechSynthesis.speak(utterance);
+  }
+
+  if (els.muteBtn) {
+    els.muteBtn.addEventListener('click', () => {
+      enabled = !enabled;
+      localStorage.setItem('speechEnabled', String(enabled));
+      if (!enabled && window.speechSynthesis) speechSynthesis.cancel();
+      updateButtonUI();
+    });
+    updateButtonUI();
+  }
+
+  return { speak };
+})();
+
 (function setupVoiceInput() {
   const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognitionCtor || !els.voiceBtn) return;
@@ -304,6 +365,7 @@ els.chatForm.addEventListener('submit', async (e) => {
 
   let listening = false;
 
+  recognition.addEventListener('start', () => setOrbState('listening'));
   recognition.addEventListener('result', (e) => {
     els.chatText.value = e.results[0][0].transcript;
     els.chatText.focus();
@@ -311,10 +373,12 @@ els.chatForm.addEventListener('submit', async (e) => {
   recognition.addEventListener('end', () => {
     listening = false;
     els.voiceBtn.classList.remove('listening');
+    setOrbState('idle');
   });
   recognition.addEventListener('error', () => {
     listening = false;
     els.voiceBtn.classList.remove('listening');
+    setOrbState('idle');
   });
 
   els.voiceBtn.hidden = false;
