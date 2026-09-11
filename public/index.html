@@ -35,8 +35,24 @@
 
     <main id="tab-chat" class="tab-panel">
       <div id="messages" class="messages"></div>
+
+      <div id="image-preview" class="image-preview hidden">
+        <img id="image-preview-img" alt="Pré-visualização da imagem anexada" />
+        <button type="button" id="image-preview-remove" aria-label="Remover imagem">✕</button>
+      </div>
+
       <form id="chat-form" class="chat-input">
-        <input id="chat-text" type="text" placeholder="Fale com seu assistente..." autocomplete="off" required />
+        <input type="file" id="chat-image-input" accept="image/*" capture="environment" hidden />
+        <button type="button" id="attach-btn" class="voice-btn" title="Anexar foto (ex: recibo)" aria-label="Anexar foto">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15V6a2 2 0 0 0-2-2H8.5L5 7.5V18a2 2 0 0 0 2 2h6"></path>
+            <path d="M5 7.5H8.5V4"></path>
+            <circle cx="17" cy="17" r="4"></circle>
+            <path d="M17 15.5v3"></path>
+            <path d="M15.5 17h3"></path>
+          </svg>
+        </button>
+        <input id="chat-text" type="text" placeholder="Fale com seu assistente..." autocomplete="off" />
         <button type="button" id="voice-btn" class="voice-btn" title="Falar" aria-label="Falar por voz" hidden>
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="9" y="2" width="6" height="12" rx="3"></rect>

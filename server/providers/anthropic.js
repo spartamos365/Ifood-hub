@@ -7,10 +7,17 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-5';
 const MAX_TOOL_ROUNDS = 6;
 
-async function runConversation(systemPrompt, history, userMessage, toolDefs, executeTool) {
+async function runConversation(systemPrompt, history, userMessage, toolDefs, executeTool, image) {
+  const userContent = image
+    ? [
+        { type: 'image', source: { type: 'base64', media_type: image.mimeType, data: image.data } },
+        { type: 'text', text: userMessage },
+      ]
+    : userMessage;
+
   const messages = [
     ...history.map(m => ({ role: m.role, content: m.content })),
-    { role: 'user', content: userMessage },
+    { role: 'user', content: userContent },
   ];
 
   let rounds = 0;

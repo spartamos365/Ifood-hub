@@ -18,10 +18,13 @@ function toGeminiTools(toolDefs) {
   }];
 }
 
-async function runConversation(systemPrompt, history, userMessage, toolDefs, executeTool) {
+async function runConversation(systemPrompt, history, userMessage, toolDefs, executeTool, image) {
+  const userParts = [{ text: userMessage }];
+  if (image) userParts.unshift({ inlineData: { mimeType: image.mimeType, data: image.data } });
+
   const contents = [
     ...history.map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })),
-    { role: 'user', parts: [{ text: userMessage }] },
+    { role: 'user', parts: userParts },
   ];
 
   let rounds = 0;

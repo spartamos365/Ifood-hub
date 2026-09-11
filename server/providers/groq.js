@@ -15,11 +15,17 @@ function toOpenAiTools(toolDefs) {
   }));
 }
 
-async function runConversation(systemPrompt, history, userMessage, toolDefs, executeTool) {
+async function runConversation(systemPrompt, history, userMessage, toolDefs, executeTool, image) {
+  // O modelo padrão do Groq não tem visão. Em vez de ignorar a imagem em
+  // silêncio, avisa o modelo pra ele explicar isso ao usuário na resposta.
+  const effectiveMessage = image
+    ? `${userMessage}\n\n[Nota do sistema: o usuário anexou uma imagem, mas o motor de IA atual (Groq) não consegue analisar imagens. Avise isso e sugira trocar AI_PROVIDER para "gemini" ou "anthropic" no .env para analisar fotos.]`
+    : userMessage;
+
   const messages = [
     { role: 'system', content: systemPrompt },
     ...history.map(m => ({ role: m.role, content: m.content })),
-    { role: 'user', content: userMessage },
+    { role: 'user', content: effectiveMessage },
   ];
 
   let rounds = 0;

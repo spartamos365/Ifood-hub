@@ -223,6 +223,16 @@ implementados, plugados no mesmo núcleo (agente + memória + rotina):
       raciocínio do agente, e busca real na web opcional via Tavily (Fase 4).
 - [x] **Entrada por voz** no chat (Fase 5), com aviso de que precisa de HTTPS
       pra funcionar pelo celular (ver seção acima).
+- [x] **Personalidade "Jarvis"** (Fase 7a): o agente fala com confiança, é
+      proativo de verdade, tem opinião quando perguntado, e não soa como um
+      chatbot de suporte genérico. Isso é definido pelo system prompt em
+      `server/agent.js` — se não estiver com a personalidade que você quer,
+      é só ajustar o texto ali.
+- [x] **Foto de recibo/nota fiscal** (Fase 7b): anexa uma foto no chat (ícone
+      de clipe) e o agente lê o estabelecimento, valor e data, e já registra
+      o gasto sozinho via `log_transaction` — sem precisar digitar nada.
+      Funciona com Gemini (padrão) e Anthropic; no Groq, o modelo padrão não
+      tem visão e o agente avisa isso na resposta.
 
 Próximas evoluções sugeridas (nenhuma delas obrigatória, mas onde investir se
 quiser ir além):

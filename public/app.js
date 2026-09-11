@@ -23,6 +23,11 @@ const els = {
   chatForm: document.getElementById('chat-form'),
   chatText: document.getElementById('chat-text'),
   voiceBtn: document.getElementById('voice-btn'),
+  attachBtn: document.getElementById('attach-btn'),
+  chatImageInput: document.getElementById('chat-image-input'),
+  imagePreview: document.getElementById('image-preview'),
+  imagePreviewImg: document.getElementById('image-preview-img'),
+  imagePreviewRemove: document.getElementById('image-preview-remove'),
   briefingText: document.getElementById('briefing-text'),
   genBriefingBtn: document.getElementById('gen-briefing-btn'),
   taskList: document.getElementById('task-list'),
@@ -165,10 +170,22 @@ els.tabBtns.forEach((btn) => {
 });
 
 // ─── Chat ──────────────────────────────────────────────────────────
-function addMessage(role, text, pending = false) {
+function addMessage(role, text, pending = false, imageDataUrl = null) {
   const div = document.createElement('div');
   div.className = `msg ${role}${pending ? ' pending' : ''}`;
-  div.textContent = text;
+
+  if (imageDataUrl) {
+    const img = document.createElement('img');
+    img.src = imageDataUrl;
+    img.className = 'msg-image';
+    div.appendChild(img);
+  }
+  if (text) {
+    const textEl = document.createElement('div');
+    textEl.textContent = text;
+    div.appendChild(textEl);
+  }
+
   els.messages.appendChild(div);
   els.messages.scrollTop = els.messages.scrollHeight;
   return div;
@@ -185,18 +202,82 @@ async function loadConversation() {
   }
 }
 
+// ─── Anexar foto (ex: recibo) ────────────────────────────────────────
+let pendingImageDataUrl = null; // data URL completa, só pra pré-visualização local
+
+function resizeImageFile(file, maxDim = 1600, quality = 0.82) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Falha ao ler o arquivo'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Falha ao carregar a imagem'));
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          const scale = maxDim / Math.max(width, height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function clearPendingImage() {
+  pendingImageDataUrl = null;
+  els.chatImageInput.value = '';
+  els.imagePreview.classList.add('hidden');
+  els.imagePreviewImg.src = '';
+}
+
+els.attachBtn.addEventListener('click', () => els.chatImageInput.click());
+
+els.chatImageInput.addEventListener('change', async () => {
+  const file = els.chatImageInput.files[0];
+  if (!file) return;
+  try {
+    pendingImageDataUrl = await resizeImageFile(file);
+    els.imagePreviewImg.src = pendingImageDataUrl;
+    els.imagePreview.classList.remove('hidden');
+  } catch (err) {
+    alert(`Não consegui processar essa imagem: ${err.message}`);
+    clearPendingImage();
+  }
+});
+
+els.imagePreviewRemove.addEventListener('click', clearPendingImage);
+
+// ─── Enviar mensagem (texto e/ou imagem) ──────────────────────────────
 els.chatForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const text = els.chatText.value.trim();
-  if (!text) return;
+  const imageDataUrl = pendingImageDataUrl;
+  if (!text && !imageDataUrl) return;
+
+  let image = null;
+  if (imageDataUrl) {
+    const [header, data] = imageDataUrl.split(',');
+    const mimeType = header.match(/data:(.*);base64/)[1];
+    image = { mimeType, data };
+  }
+
   els.chatText.value = '';
-  addMessage('user', text);
+  clearPendingImage();
+  addMessage('user', text, false, imageDataUrl);
   const pendingEl = addMessage('assistant', 'Pensando...', true);
 
   try {
     const data = await api('/api/chat', {
       method: 'POST',
-      body: JSON.stringify({ message: text, conversationId: state.conversationId }),
+      body: JSON.stringify({ message: text, conversationId: state.conversationId, image }),
     });
     state.conversationId = data.conversationId;
     localStorage.setItem('conversationId', state.conversationId);

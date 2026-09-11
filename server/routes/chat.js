@@ -39,12 +39,18 @@ router.get('/:conversationId/messages', (req, res) => {
   res.json({ messages: rows });
 });
 
-// POST /api/chat — envia uma mensagem para o agente
+// POST /api/chat — envia uma mensagem para o agente (com foto opcional, ex: recibo)
 router.post('/', async (req, res) => {
-  const { message, conversationId } = req.body;
-  if (!message || !message.trim()) {
+  const { message, conversationId, image } = req.body;
+  if ((!message || !message.trim()) && !image) {
     return res.status(400).json({ error: 'Mensagem vazia' });
   }
+  if (image && (!image.mimeType || !image.data)) {
+    return res.status(400).json({ error: 'Imagem inválida' });
+  }
+
+  const effectiveMessage = message && message.trim() ? message.trim() : 'Analisa essa imagem.';
+  const savedText = image ? `${effectiveMessage}\n[imagem anexada]` : effectiveMessage;
 
   try {
     const conversation = getOrCreateConversation(req.userId, conversationId);
@@ -54,16 +60,16 @@ router.post('/', async (req, res) => {
       WHERE conversation_id = ? ORDER BY created_at ASC LIMIT 40
     `).all(conversation.id);
 
-    const reply = await runAgent(req.userId, history, message);
+    const reply = await runAgent(req.userId, history, effectiveMessage, image);
 
     const now = new Date().toISOString();
     db.prepare('INSERT INTO messages (id, conversation_id, role, content) VALUES (?, ?, ?, ?)')
-      .run(uuidv4(), conversation.id, 'user', message);
+      .run(uuidv4(), conversation.id, 'user', savedText);
     db.prepare('INSERT INTO messages (id, conversation_id, role, content) VALUES (?, ?, ?, ?)')
       .run(uuidv4(), conversation.id, 'assistant', reply);
 
     if (!conversation.title) {
-      const title = message.slice(0, 60);
+      const title = savedText.slice(0, 60);
       db.prepare('UPDATE conversations SET title = ? WHERE id = ?').run(title, conversation.id);
     }
 
