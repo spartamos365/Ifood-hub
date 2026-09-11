@@ -19,6 +19,17 @@ const els = {
   tabPatrimonio: document.getElementById('tab-patrimonio'),
   tabHealth: document.getElementById('tab-health'),
   tabOpportunities: document.getElementById('tab-opportunities'),
+  tabOverview: document.getElementById('tab-overview'),
+  overviewGaugeFill: document.getElementById('overview-gauge-fill'),
+  overviewGaugeValue: document.getElementById('overview-gauge-value'),
+  overviewHeadline: document.getElementById('overview-headline'),
+  ovNetworth: document.getElementById('ov-networth'),
+  ovPersonalBalance: document.getElementById('ov-personal-balance'),
+  ovCompanyBalance: document.getElementById('ov-company-balance'),
+  ovOpportunities: document.getElementById('ov-opportunities'),
+  overviewNetworthChart: document.getElementById('overview-networth-chart'),
+  ovTasks: document.getElementById('ov-tasks'),
+  ovHealth: document.getElementById('ov-health'),
   messages: document.getElementById('messages'),
   chatForm: document.getElementById('chat-form'),
   chatText: document.getElementById('chat-text'),
@@ -117,7 +128,7 @@ function showApp() {
   els.loginScreen.classList.add('hidden');
   els.appScreen.classList.remove('hidden');
   loadConversation();
-  loadRoutine();
+  loadOverview();
 }
 
 function showLogin() {
@@ -155,6 +166,7 @@ els.tabBtns.forEach((btn) => {
     els.tabBtns.forEach((b) => b.classList.remove('active'));
     btn.classList.add('active');
     const tab = btn.dataset.tab;
+    els.tabOverview.classList.toggle('hidden', tab !== 'overview');
     els.tabChat.classList.toggle('hidden', tab !== 'chat');
     els.tabRoutine.classList.toggle('hidden', tab !== 'routine');
     els.tabFinance.classList.toggle('hidden', tab !== 'finance');
@@ -162,6 +174,7 @@ els.tabBtns.forEach((btn) => {
     els.tabPatrimonio.classList.toggle('hidden', tab !== 'patrimonio');
     els.tabHealth.classList.toggle('hidden', tab !== 'health');
     els.tabOpportunities.classList.toggle('hidden', tab !== 'opportunities');
+    if (tab === 'overview') loadOverview();
     if (tab === 'routine') loadRoutine();
     if (tab === 'finance') personalFinancePanel.load();
     if (tab === 'company') companyFinancePanel.load();
@@ -403,16 +416,17 @@ async function loadRoutine() {
     els.briefingText.textContent = briefing.briefing
       ? briefing.briefing.content
       : 'Nenhum resumo gerado ainda hoje.';
-    renderTasks(today.tasks);
+    renderTasksInto(els.taskList, today.tasks, loadRoutine);
   } catch (err) {
     els.briefingText.textContent = `Erro ao carregar: ${err.message}`;
   }
 }
 
-function renderTasks(tasks) {
-  els.taskList.innerHTML = '';
+// Lista de tarefas reaproveitada pela aba Rotina e pela Visão Geral.
+function renderTasksInto(listEl, tasks, onToggle) {
+  listEl.innerHTML = '';
   if (!tasks.length) {
-    els.taskList.innerHTML = '<li class="task-empty">Nenhuma tarefa para hoje. 🎉</li>';
+    listEl.innerHTML = '<li class="task-empty">Nenhuma tarefa para hoje. 🎉</li>';
     return;
   }
   tasks.forEach((task) => {
@@ -427,7 +441,7 @@ function renderTasks(tasks) {
         method: 'PATCH',
         body: JSON.stringify({ status: check.checked ? 'concluida' : 'pendente' }),
       });
-      loadRoutine();
+      onToggle();
     });
 
     const title = document.createElement('span');
@@ -444,7 +458,7 @@ function renderTasks(tasks) {
       li.appendChild(due);
     }
 
-    els.taskList.appendChild(li);
+    listEl.appendChild(li);
   });
 }
 
@@ -760,7 +774,7 @@ els.assetForm.addEventListener('submit', async (e) => {
 async function loadHealth() {
   try {
     const { metrics } = await api('/api/health/metrics');
-    renderMetrics(metrics);
+    renderMetricsInto(els.metricList, metrics);
     renderMetricSelect(metrics);
     await loadMetricChart();
   } catch (err) {
@@ -768,10 +782,11 @@ async function loadHealth() {
   }
 }
 
-function renderMetrics(metrics) {
-  els.metricList.innerHTML = '';
+// Lista de últimas leituras, reaproveitada pela aba Saúde e pela Visão Geral.
+function renderMetricsInto(listEl, metrics) {
+  listEl.innerHTML = '';
   if (!metrics.length) {
-    els.metricList.innerHTML = '<li class="task-empty">Nenhuma métrica registrada ainda.</li>';
+    listEl.innerHTML = '<li class="task-empty">Nenhuma métrica registrada ainda.</li>';
     return;
   }
   metrics.forEach((m) => {
@@ -782,7 +797,7 @@ function renderMetrics(metrics) {
     value.className = 'tx-meta';
     value.textContent = `${m.value} · ${new Date(m.logged_at).toLocaleDateString('pt-BR')}`;
     li.appendChild(value);
-    els.metricList.appendChild(li);
+    listEl.appendChild(li);
   });
 }
 
@@ -918,6 +933,57 @@ els.opportunityForm.addEventListener('submit', async (e) => {
   els.oppValue.value = '';
   loadOpportunities();
 });
+
+// ─── Visão Geral ───────────────────────────────────────────────────
+const GAUGE_CIRCUMFERENCE = 2 * Math.PI * 52;
+els.overviewGaugeFill.style.strokeDasharray = String(GAUGE_CIRCUMFERENCE);
+
+function setGauge(fraction) {
+  const clamped = Math.max(0, Math.min(1, fraction));
+  els.overviewGaugeFill.style.strokeDashoffset = String(GAUGE_CIRCUMFERENCE * (1 - clamped));
+  els.overviewGaugeValue.textContent = `${Math.round(clamped * 100)}%`;
+}
+
+async function loadOverview() {
+  try {
+    const [netWorth, netWorthHistory, personalSummary, companySummary, today, healthMetrics, opportunities] = await Promise.all([
+      api('/api/patrimonio/net-worth'),
+      api('/api/patrimonio/history?days=30'),
+      api('/api/finance/summary?period=month'),
+      api('/api/company/finance/summary?period=month'),
+      api('/api/routine/today'),
+      api('/api/health/metrics'),
+      api('/api/opportunities'),
+    ]);
+
+    els.ovNetworth.textContent = formatCurrency(netWorth.netWorth);
+    els.ovPersonalBalance.textContent = formatCurrency(personalSummary.totalBalance);
+    els.ovCompanyBalance.textContent = formatCurrency(companySummary.totalBalance);
+
+    const activeCount = opportunities.opportunities
+      .filter((o) => o.status === 'analisando' || o.status === 'em_andamento').length;
+    els.ovOpportunities.textContent = String(activeCount);
+
+    renderSparkline(els.overviewNetworthChart, netWorthHistory.history, 'total');
+    renderTasksInto(els.ovTasks, today.tasks, loadOverview);
+    renderMetricsInto(els.ovHealth, healthMetrics.metrics.slice(0, 5));
+
+    const tasks = today.tasks;
+    const completed = tasks.filter((t) => t.status === 'concluida').length;
+    setGauge(tasks.length ? completed / tasks.length : 1);
+
+    const pending = tasks.length - completed;
+    if (tasks.length === 0) {
+      els.overviewHeadline.textContent = 'Nenhuma tarefa marcada para hoje — dia livre.';
+    } else if (pending === 0) {
+      els.overviewHeadline.textContent = 'Todas as tarefas de hoje concluídas. Bom trabalho.';
+    } else {
+      els.overviewHeadline.textContent = `${pending} de ${tasks.length} tarefa${tasks.length > 1 ? 's' : ''} ainda pendente${pending > 1 ? 's' : ''} hoje.`;
+    }
+  } catch (err) {
+    els.overviewHeadline.textContent = `Erro ao carregar visão geral: ${err.message}`;
+  }
+}
 
 // ─── Boot ──────────────────────────────────────────────────────────
 if (state.token) {

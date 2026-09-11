@@ -22,7 +22,8 @@
     <header class="topbar">
       <span class="brand">Assistente</span>
       <nav class="tabs">
-        <button class="tab-btn active" data-tab="chat">Chat</button>
+        <button class="tab-btn active" data-tab="overview">Visão Geral</button>
+        <button class="tab-btn" data-tab="chat">Chat</button>
         <button class="tab-btn" data-tab="routine">Rotina</button>
         <button class="tab-btn" data-tab="finance">Finanças</button>
         <button class="tab-btn" data-tab="company">Empresa</button>
@@ -33,7 +34,57 @@
       <button id="logout-btn" class="ghost-btn">Sair</button>
     </header>
 
-    <main id="tab-chat" class="tab-panel">
+    <main id="tab-overview" class="tab-panel">
+      <section class="overview-hero">
+        <div class="gauge-wrap">
+          <svg viewBox="0 0 120 120" class="gauge">
+            <circle cx="60" cy="60" r="52" class="gauge-track" fill="none" stroke-width="10"></circle>
+            <circle id="overview-gauge-fill" cx="60" cy="60" r="52" class="gauge-fill" fill="none" stroke-width="10" stroke-linecap="round" transform="rotate(-90 60 60)"></circle>
+          </svg>
+          <div class="gauge-label">
+            <span id="overview-gauge-value" class="gauge-value">0%</span>
+            <span class="gauge-caption">tarefas hoje</span>
+          </div>
+        </div>
+        <p id="overview-headline" class="overview-headline">Carregando seu panorama...</p>
+      </section>
+
+      <section class="overview-stats">
+        <div class="stat-card">
+          <span class="stat-label">Patrimônio líquido</span>
+          <span id="ov-networth" class="stat-value">—</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Saldo pessoal</span>
+          <span id="ov-personal-balance" class="stat-value">—</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Saldo empresa</span>
+          <span id="ov-company-balance" class="stat-value">—</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Oportunidades ativas</span>
+          <span id="ov-opportunities" class="stat-value">—</span>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-header"><h2>Patrimônio — evolução</h2></div>
+        <svg id="overview-networth-chart" class="networth-chart" viewBox="0 0 300 80" preserveAspectRatio="none"></svg>
+      </section>
+
+      <section>
+        <div class="section-header"><h2>Rotina de hoje</h2></div>
+        <ul id="ov-tasks" class="task-list"></ul>
+      </section>
+
+      <section>
+        <div class="section-header"><h2>Saúde — últimas leituras</h2></div>
+        <ul id="ov-health" class="account-list"></ul>
+      </section>
+    </main>
+
+    <main id="tab-chat" class="tab-panel hidden">
       <div class="orb-wrap">
         <div id="orb" class="orb idle">
           <div class="orb-core"></div>

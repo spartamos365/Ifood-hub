@@ -233,6 +233,16 @@ implementados, plugados no mesmo núcleo (agente + memória + rotina):
       o gasto sozinho via `log_transaction` — sem precisar digitar nada.
       Funciona com Gemini (padrão) e Anthropic; no Groq, o modelo padrão não
       tem visão e o agente avisa isso na resposta.
+- [x] **Voz bidirecional + avatar** (Fase 8a): o assistente fala as respostas
+      em voz alta (Web Speech API, grátis, nativo do navegador), com botão
+      pra silenciar. Um "orb" animado acima do chat reage ao estado —
+      ouvindo, pensando, falando.
+- [x] **Visual futurista** (Fase 8b): glow sutil em botões e elementos ativos,
+      gradientes discretos, tudo reaproveitando a paleta já existente.
+- [x] **Aba "Visão Geral"** (Fase 8c): painel único com todos os indicadores
+      — patrimônio líquido, saldo pessoal/empresa, gauge de tarefas
+      concluídas hoje, evolução de patrimônio, rotina do dia e últimas
+      leituras de saúde. Vira a tela inicial ao entrar no app.
 
 Próximas evoluções sugeridas (nenhuma delas obrigatória, mas onde investir se
 quiser ir além):

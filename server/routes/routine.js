@@ -14,15 +14,20 @@ router.get('/tasks', (req, res) => {
   res.json({ tasks: rows });
 });
 
-// GET /api/routine/today — agenda de hoje (pendentes com due_at hoje + sem prazo)
+// GET /api/routine/today — agenda de hoje: pendentes (com due_at hoje ou sem
+// prazo) + as que já foram concluídas hoje (pra aparecerem riscadas, em vez
+// de simplesmente sumirem da lista assim que marcadas como feitas).
 router.get('/today', (req, res) => {
   const todayStr = new Date().toISOString().slice(0, 10);
   const rows = db.prepare(`
     SELECT * FROM tasks
-    WHERE user_id = ? AND status = 'pendente'
-      AND (due_at IS NULL OR substr(due_at, 1, 10) = ?)
-    ORDER BY due_at IS NULL, due_at ASC
-  `).all(req.userId, todayStr);
+    WHERE user_id = ?
+      AND (
+        (status = 'pendente' AND (due_at IS NULL OR substr(due_at, 1, 10) = ?))
+        OR (status = 'concluida' AND substr(completed_at, 1, 10) = ?)
+      )
+    ORDER BY status = 'concluida', due_at IS NULL, due_at ASC
+  `).all(req.userId, todayStr, todayStr);
   res.json({ tasks: rows });
 });
 
