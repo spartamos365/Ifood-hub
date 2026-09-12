@@ -92,8 +92,12 @@ interface, então trocar de provedor não muda nada no resto do código.
 1. Entre com uma conta Google em https://aistudio.google.com.
 2. Gere uma API key em https://aistudio.google.com/apikey.
 3. No `.env`: `AI_PROVIDER=gemini` e `GEMINI_API_KEY=...`.
-4. Roda o modelo Gemini 2.0 Flash por padrão (`GEMINI_MODEL`), com suporte a
-   tool calling e tier gratuito generoso.
+4. Roda o modelo Gemini 3.5 Flash-Lite por padrão (`GEMINI_MODEL`) — mais
+   econômico e com cota diária gratuita bem maior que os modelos "cheios"
+   como o `gemini-3.6-flash`, que na prática limita a ~20 requisições/dia.
+   Se ainda assim bater no limite (erro 429 "RESOURCE_EXHAUSTED"), é só
+   esperar a cota resetar (meia-noite no horário do Pacífico dos EUA) ou
+   trocar para outro provedor (Groq/Anthropic) enquanto isso.
 
 **Groq (alternativa gratuita)**:
 1. Crie uma conta grátis em https://console.groq.com (não pede cartão de crédito).

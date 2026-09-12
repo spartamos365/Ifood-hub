@@ -5,7 +5,10 @@ const { GoogleGenAI } = require('@google/genai');
 // Anthropic e do estilo OpenAI usado pelo Groq.
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-const MODEL = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
+// gemini-3.5-flash-lite tem cota gratuita diária bem maior que o gemini-3.6-flash
+// "cheio" (que na prática limita a ~20 requisições/dia) — melhor padrão para uso
+// pessoal contínuo. Troque via GEMINI_MODEL no .env se quiser outro.
+const MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
 const MAX_TOOL_ROUNDS = 6;
 
 function toGeminiTools(toolDefs) {
